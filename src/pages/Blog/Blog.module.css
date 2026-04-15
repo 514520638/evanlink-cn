@@ -1,0 +1,77 @@
+.blog {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.title {
+  font-size: 36px;
+  margin-bottom: 16px !important;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme='dark'] .subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.filters {
+  margin-bottom: 48px;
+}
+
+.searchInput {
+  max-width: 400px;
+  margin-bottom: 24px;
+}
+
+.filterGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filterGroup label {
+  font-weight: 500;
+  min-width: 60px;
+}
+
+.select {
+  width: 150px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tag:hover {
+  color: #1890ff;
+}
+
+.tagActive {
+  background: #1890ff !important;
+  color: white !important;
+}
+
+.empty {
+  margin-top: 80px;
+}

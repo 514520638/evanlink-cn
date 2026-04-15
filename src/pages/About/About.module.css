@@ -1,0 +1,101 @@
+.about {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.avatar {
+  margin-bottom: 24px;
+  border: 4px solid #1890ff;
+}
+
+.subtitle {
+  font-size: 18px !important;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme='dark'] .subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.card {
+  margin-bottom: 24px;
+  border-radius: 12px;
+}
+
+.bio {
+  font-size: 16px;
+  line-height: 1.8;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme='dark'] .bio {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.85);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+[data-theme='dark'] .contactItem {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.contactItem:hover {
+  color: #1890ff;
+}
+
+.skills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 32px;
+}
+
+.skillGroup {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+
+[data-theme='dark'] .skillGroup {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.skillGroup h5 {
+  margin-bottom: 16px !important;
+  color: #1890ff;
+}
+
+.skillList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skillItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skillHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}

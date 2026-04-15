@@ -1,0 +1,191 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 0 24px;
+  background: #ffffff !important;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  color: #000000;
+}
+
+:root[data-theme='dark'] .header {
+  background: #141414 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.collapseBtn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .collapseBtn {
+    display: flex;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.menu {
+  border: none !important;
+  background: transparent !important;
+}
+
+.menu :global(.ant-menu-item) {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+:root[data-theme='dark'] .menu :global(.ant-menu-item) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.menu :global(.ant-menu-item-selected) {
+  color: #1890ff !important;
+}
+
+/* 深色模式下水平菜单样式 */
+:root[data-theme='dark'] .menu :global(.ant-menu-item-selected) {
+  color: #ffffff !important;
+  background: rgba(24, 144, 255, 0.3) !important;
+  border-bottom: 2px solid #1890ff !important;
+}
+
+:root[data-theme='dark'] .menu :global(.ant-menu-item:hover) {
+  color: #40a9ff !important;
+}
+
+@media (max-width: 768px) {
+  .menu {
+    display: none;
+  }
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+}
+
+.rightSection :global(.ant-btn-text) {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+:root[data-theme='dark'] .rightSection :global(.ant-btn-text) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.rightSection :global(.ant-dropdown-trigger) {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+:root[data-theme='dark'] .rightSection :global(.ant-dropdown-trigger) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.socialLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  color: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+:root[data-theme='dark'] .socialLink {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.socialLink:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+/* 移动端抽屉菜单样式 */
+.mobileDrawer :global(.ant-drawer-header) {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.mobileDrawer :global(.ant-drawer-body) {
+  padding: 0;
+}
+
+.mobileDrawer :global(.ant-drawer-title) {
+  color: #000000;
+}
+
+.mobileDrawer :global(.ant-menu) {
+  border: none !important;
+}
+
+.mobileDrawer :global(.ant-menu-item) {
+  height: 48px;
+  line-height: 48px;
+  margin: 0;
+  padding-left: 24px !important;
+  border-radius: 0;
+}
+
+.mobileDrawer :global(.ant-menu-item-selected) {
+  background: rgba(24, 144, 255, 0.1) !important;
+  color: #1890ff !important;
+}
+
+/* 深色模式 */
+:root[data-theme='dark'] .mobileDrawer :global(.ant-drawer-header) {
+  background: #141414;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme='dark'] .mobileDrawer :global(.ant-drawer-title) {
+  color: #ffffff;
+}
+
+:root[data-theme='dark'] .mobileDrawer :global(.ant-menu-item) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme='dark'] .mobileDrawer :global(.ant-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme='dark'] .mobileDrawer :global(.ant-menu-item-selected) {
+  background: rgba(24, 144, 255, 0.2) !important;
+  color: #40a9ff !important;
+}

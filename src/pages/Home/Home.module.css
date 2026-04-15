@@ -1,0 +1,129 @@
+.home {
+  padding-bottom: 40px;
+}
+
+/* Hero Section */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(100vh - 200px);
+  padding: 80px 0;
+  gap: 60px;
+}
+
+@media (max-width: 968px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 60px 0;
+    min-height: auto;
+  }
+}
+
+.heroContent {
+  flex: 1;
+}
+
+.heroTitle {
+  font-size: 48px !important;
+  font-weight: 700 !important;
+  margin-bottom: 24px !important;
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 36px !important;
+  }
+}
+
+.heroSubtitle {
+  font-size: 20px !important;
+  color: rgba(0, 0, 0, 0.65);
+  margin-bottom: 32px !important;
+  line-height: 1.6;
+}
+
+[data-theme='dark'] .heroSubtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.heroButtons {
+  display: flex;
+  gap: 16px;
+}
+
+@media (max-width: 968px) {
+  .heroButtons {
+    justify-content: center;
+  }
+}
+
+.heroDecoration {
+  flex: 1;
+  max-width: 500px;
+}
+
+@media (max-width: 968px) {
+  .heroDecoration {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+.codePreview {
+  background: #282c34;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .codePreview {
+  background: #1e1e1e;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.codePreview pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #abb2bf;
+}
+
+.codePreview code {
+  color: #abb2bf;
+}
+
+/* Section */
+.section {
+  padding: 80px 0;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.sectionHeader h2 {
+  margin-bottom: 8px !important;
+}
+
+.sectionHeader p {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 16px;
+}
+
+[data-theme='dark'] .sectionHeader p {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.moreLink {
+  text-align: center;
+  margin-top: 48px;
+}

@@ -1,0 +1,88 @@
+{
+  "nav": {
+    "home": "首页",
+    "blog": "博客",
+    "about": "关于我",
+    "projects": "项目",
+    "friends": "友链"
+  },
+  "hero": {
+    "title": "你好，我是 ",
+    "subtitle": "一名全栈工程师，热衷于构建高性能系统",
+    "cta_read": "阅读文章",
+    "cta_code": "查看代码"
+  },
+  "blog": {
+    "title": "技术文章",
+    "subtitle": "深入探讨技术，分享实战经验",
+    "search": "搜索文章...",
+    "categories": "分类",
+    "tags": "标签云",
+    "all": "全部",
+    "reading_time": "阅读时间",
+    "minutes": "分钟",
+    "views": "阅读",
+    "no_results": "未找到相关文章",
+    "load_more": "加载更多"
+  },
+  "article": {
+    "published": "发布于",
+    "updated": "更新于",
+    "toc": "目录",
+    "prev": "上一篇",
+    "next": "下一篇",
+    "comments": "评论区"
+  },
+  "about": {
+    "title": "关于我",
+    "subtitle": "一个热爱技术的好奇心工程师",
+    "bio_title": "个人简介",
+    "skills_title": "技能栈",
+    "resume_download": "下载简历",
+    "contact_title": "联系方式",
+    "email": "邮箱",
+    "github": "GitHub",
+    "twitter": "Twitter"
+  },
+  "projects": {
+    "title": "项目展示",
+    "subtitle": "我的 Side Project 与开源贡献",
+    "source_code": "源码",
+    "live_demo": "在线演示",
+    "technologies": "技术栈"
+  },
+  "friends": {
+    "title": "友情链接",
+    "subtitle": "志同道合的朋友们的网站",
+    "apply": "申请友链",
+    "apply_desc": "如果你也有自己的博客或网站，欢迎交换友链！"
+  },
+  "footer": {
+    "copyright": "版权所有",
+    "powered_by": "由",
+    "built_with": "构建",
+    "running_days": "本站已运行",
+    "days": "天",
+    "visitor_count": "访客数"
+  },
+  "theme": {
+    "light": "浅色模式",
+    "dark": "深色模式"
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  },
+  "social": {
+    "github": "GitHub",
+    "twitter": "Twitter/X",
+    "email": "邮箱",
+    "rss": "RSS订阅"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "出错了",
+    "back_home": "返回首页",
+    "not_found": "页面未找到"
+  }
+}

@@ -1,0 +1,161 @@
+.footer {
+  margin-top: 80px;
+  padding: 60px 24px 24px;
+  background: #ffffff !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+
+:root[data-theme='dark'] .footer {
+  background: #141414 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 40px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] .top {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .top {
+    flex-direction: column;
+    gap: 40px;
+  }
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1890ff;
+}
+
+.slogan {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 14px;
+}
+
+[data-theme='dark'] .slogan {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.stats {
+  display: flex;
+  gap: 32px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1890ff;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='dark'] .statLabel {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.links {
+  display: flex;
+  gap: 80px;
+}
+
+@media (max-width: 768px) {
+  .links {
+    gap: 40px;
+  }
+}
+
+.linkGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linkTitle {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+[data-theme='dark'] .linkTitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.linkGroup a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+[data-theme='dark'] .linkGroup a {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.linkGroup a:hover {
+  color: #1890ff;
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .bottom {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+.copyright,
+.powered {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='dark'] .copyright,
+[data-theme='dark'] .powered {
+  color: rgba(255, 255, 255, 0.45);
+}

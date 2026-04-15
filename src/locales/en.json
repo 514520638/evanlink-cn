@@ -1,0 +1,88 @@
+{
+  "nav": {
+    "home": "Home",
+    "blog": "Blog",
+    "about": "About",
+    "projects": "Projects",
+    "friends": "Friends"
+  },
+  "hero": {
+    "title": "Hi, I'm ",
+    "subtitle": "A full-stack engineer passionate about building high-performance systems",
+    "cta_read": "Read Articles",
+    "cta_code": "View Code"
+  },
+  "blog": {
+    "title": "Technical Articles",
+    "subtitle": "Deep dive into technology, share practical experience",
+    "search": "Search articles...",
+    "categories": "Categories",
+    "tags": "Tags",
+    "all": "All",
+    "reading_time": "Reading time",
+    "minutes": "min",
+    "views": "views",
+    "no_results": "No articles found",
+    "load_more": "Load More"
+  },
+  "article": {
+    "published": "Published on",
+    "updated": "Updated on",
+    "toc": "Table of Contents",
+    "prev": "Previous",
+    "next": "Next",
+    "comments": "Comments"
+  },
+  "about": {
+    "title": "About Me",
+    "subtitle": "A curious engineer who loves technology",
+    "bio_title": "Biography",
+    "skills_title": "Skills",
+    "resume_download": "Download Resume",
+    "contact_title": "Contact",
+    "email": "Email",
+    "github": "GitHub",
+    "twitter": "Twitter"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "My Side Projects & Open Source Contributions",
+    "source_code": "Source Code",
+    "live_demo": "Live Demo",
+    "technologies": "Technologies"
+  },
+  "friends": {
+    "title": "Friends Links",
+    "subtitle": "Websites from friends with shared interests",
+    "apply": "Apply for Link",
+    "apply_desc": "If you have your own blog or website, feel free to exchange links!"
+  },
+  "footer": {
+    "copyright": "All rights reserved",
+    "powered_by": "Powered by",
+    "built_with": "Built with",
+    "running_days": "Running for",
+    "days": "days",
+    "visitor_count": "Visitors"
+  },
+  "theme": {
+    "light": "Light Mode",
+    "dark": "Dark Mode"
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English"
+  },
+  "social": {
+    "github": "GitHub",
+    "twitter": "Twitter/X",
+    "email": "Email",
+    "rss": "RSS Feed"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "back_home": "Back to Home",
+    "not_found": "Page Not Found"
+  }
+}
