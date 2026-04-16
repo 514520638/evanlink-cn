@@ -1,24 +1,73 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Typography, Row, Col, Avatar, Button, Progress, Card } from 'antd'
+import { Typography, Row, Col, Avatar, Button, Progress, Card, Modal, Form, Input, message } from 'antd'
 import {
-  DownloadOutlined,
+  EyeOutlined,
   GithubOutlined,
-  TwitterOutlined,
   MailOutlined,
   GlobalOutlined,
+  WechatOutlined,
+  LockOutlined,
+  PhoneOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { aboutInfo } from '../../data/projects'
+import { API_ENDPOINTS } from '../../config/api'
 import styles from './About.module.css'
+import { useAppSelector } from '../../store/hooks'
 
 const { Title, Paragraph } = Typography
 
 export const About: React.FC = () => {
   const { t, i18n } = useTranslation()
+  const userInfo = useAppSelector((state) => state.userInfo.userInfo)
+  const [wechatModalOpen, setWechatModalOpen] = useState(false)
+  const [resumeModalOpen, setResumeModalOpen] = useState(false)
+  const [resumeForm] = Form.useForm()
+  const [loading, setLoading] = useState(false)
+
   const isZh = i18n.language === 'zh'
 
   const getSkillsByCategory = (category: string) => {
     return aboutInfo.skills.filter((skill: any) => skill.category === category)
+  }
+
+  const handleResumeVerify = async () => {
+    try {
+      const values = await resumeForm.validateFields()
+      setLoading(true)
+      
+      // 发送请求到后台验证
+      const response = await fetch(API_ENDPOINTS.RESUME_VERIFY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: values.phone,
+          name_apply: values.name,
+          password: values.code,
+        }),
+      })
+      
+      const data = await response.json()
+      
+      if (data.success && data.resumeUrl) {
+        // 验证通过，打开返回的resumeUrl
+        setLoading(false)
+        setResumeModalOpen(false)
+        resumeForm.resetFields()
+        window.open(data.resumeUrl, '_blank')
+      } else {
+        // 验证失败
+        message.error(data.message || (isZh ? '验证失败' : 'Verification failed'))
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Request failed:', error)
+      message.error(isZh ? '请求失败，请稍后重试' : 'Request failed, please try again')
+      setLoading(false)
+    }
   }
 
   const categories = [
@@ -31,7 +80,7 @@ export const About: React.FC = () => {
   return (
     <div className={styles.about}>
       <div className={styles.header}>
-        <Avatar src={aboutInfo.avatar} size={160} className={styles.avatar} />
+        <Avatar src={userInfo?.avatar} size={160} className={styles.avatar} />
         <Title level={1}>{t('about.title')}</Title>
         <Paragraph className={styles.subtitle}>{t('about.subtitle')}</Paragraph>
       </div>
@@ -40,7 +89,7 @@ export const About: React.FC = () => {
         <Col xs={24} lg={12}>
           <Card className={styles.card}>
             <Title level={3}>{t('about.bio_title')}</Title>
-            <Paragraph className={styles.bio}>{isZh ? aboutInfo.bio : aboutInfo.bioEn}</Paragraph>
+            <Paragraph className={styles.bio}>{isZh ? userInfo?.bio : userInfo?.bioEn}</Paragraph>
           </Card>
         </Col>
 
@@ -48,20 +97,29 @@ export const About: React.FC = () => {
           <Card className={styles.card}>
             <Title level={3}>{t('about.contact_title')}</Title>
             <div className={styles.contact}>
-              <a href={`mailto:${aboutInfo.email}`} className={styles.contactItem}>
-                <MailOutlined /> {aboutInfo.email}
+              {userInfo?.wechat && (
+                <a
+                  onClick={() => setWechatModalOpen(true)}
+                  className={styles.contactItem}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <WechatOutlined /> {isZh ? '微信' : 'WeChat'}
+                </a>
+              )}
+              <a href={`mailto:${userInfo?.email}`} className={styles.contactItem}>
+                <MailOutlined /> {userInfo?.email}
               </a>
               <a
-                href={aboutInfo.github}
+                href={userInfo?.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.contactItem}
               >
                 <GithubOutlined /> GitHub
               </a>
-              {aboutInfo.gitee && (
+              {userInfo?.gitee && (
                 <a
-                  href={aboutInfo.gitee}
+                  href={userInfo?.gitee}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.contactItem}
@@ -69,24 +127,14 @@ export const About: React.FC = () => {
                   <GlobalOutlined /> Gitee
                 </a>
               )}
-              {aboutInfo.twitter && (
-                <a
-                  href={aboutInfo.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.contactItem}
-                >
-                  <TwitterOutlined /> Twitter
-                </a>
-              )}
-              {aboutInfo.resumeUrl && (
+
+              {userInfo?.resumeUrl && (
                 <Button
                   type="primary"
-                  icon={<DownloadOutlined />}
-                  href={aboutInfo.resumeUrl}
-                  target="_blank"
+                  icon={<EyeOutlined />}
+                  onClick={() => setResumeModalOpen(true)}
                 >
-                  {t('about.resume_download')}
+                  {t('about.resume_view')}
                 </Button>
               )}
             </div>
@@ -122,6 +170,101 @@ export const About: React.FC = () => {
           })}
         </div>
       </Card>
+
+      {/* 微信二维码弹窗 */}
+      <Modal
+        title={isZh ? '添加微信' : 'Add WeChat'}
+        open={wechatModalOpen}
+        onCancel={() => setWechatModalOpen(false)}
+        footer={null}
+        centered
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          {userInfo?.wechat ? (
+            <img
+              src={userInfo.wechat}
+              alt="WeChat QR Code"
+              style={{ maxWidth: '200px', borderRadius: '8px' }}
+            />
+          ) : (
+            <div style={{ padding: '40px', color: '#999' }}>
+              {isZh ? '暂无二维码' : 'No QR code available'}
+            </div>
+          )}
+          {userInfo?.wechatId && (
+            <p style={{ marginTop: '16px', fontSize: '16px' }}>
+              {isZh ? '微信号：' : 'WeChat ID: '}
+              <strong>{userInfo.wechatId}</strong>
+            </p>
+          )}
+        </div>
+      </Modal>
+
+      {/* 简历验证弹窗 */}
+      <Modal
+        title={isZh ? '查看简历' : 'View Resume'}
+        open={resumeModalOpen}
+        onCancel={() => {
+          setResumeModalOpen(false)
+          resumeForm.resetFields()
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => {
+            setResumeModalOpen(false)
+            resumeForm.resetFields()
+          }}>
+            {isZh ? '取消' : 'Cancel'}
+          </Button>,
+          <Button key="submit" type="primary" loading={loading} onClick={handleResumeVerify}>
+            {isZh ? '确认' : 'Confirm'}
+          </Button>,
+        ]}
+        centered
+      >
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ marginBottom: 20, color: 'rgba(0,0,0,0.65)' }}>
+            {isZh ? '为确保安全访问，请输入您的姓名、手机号和准许码' : 'Please enter your name, phone number and access code to verify'}
+          </p>
+          <Form form={resumeForm} layout="vertical">
+            <Form.Item
+              name="name"
+              rules={[
+                { required: true, message: isZh ? '请输入姓名' : 'Please enter your name' }
+              ]}
+            >
+              <Input
+                prefix={<UserOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                placeholder={isZh ? '请输入姓名' : 'Enter your name'}
+              />
+            </Form.Item>
+            <Form.Item
+              name="phone"
+              rules={[
+                { required: true, message: isZh ? '请输入手机号' : 'Please enter phone number' },
+                { pattern: /^1\d{10}$/, message: isZh ? '请输入11位手机号' : 'Please enter 11-digit phone number' }
+              ]}
+            >
+              <Input
+                prefix={<PhoneOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                placeholder={isZh ? '请输入手机号' : 'Enter phone number'}
+                maxLength={11}
+              />
+            </Form.Item>
+            <Form.Item
+              name="code"
+              rules={[
+                { required: true, message: isZh ? '请输入准许码' : 'Please enter access code' }
+              ]}
+            >
+              <Input
+                prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                placeholder={isZh ? '请输入准许码' : 'Enter access code'}
+                type="password"
+              />
+            </Form.Item>
+          </Form>
+        </div>
+      </Modal>
     </div>
   )
 }

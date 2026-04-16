@@ -8,11 +8,18 @@
   transition: all 0.3s;
   border-radius: 12px;
   overflow: hidden;
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 .card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='dark'] .card {
+  background: #1f1f1f;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .card:hover {

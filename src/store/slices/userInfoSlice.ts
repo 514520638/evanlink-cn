@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import type { UserInfo } from '@/types/user'
+import { API_ENDPOINTS } from '@/config/api'
 
 interface UserInfoState {
   userInfo: UserInfo | null
@@ -13,14 +14,12 @@ const initialState: UserInfoState = {
   error: null,
 }
 
-const API_URL = `${window.location.protocol}//${window.location.hostname}:8080/api/user_info`
-
 // 异步 thunk：获取用户信息
 export const fetchUserInfo = createAsyncThunk(
   'userInfo/fetchUserInfo',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(API_URL)
+      const response = await fetch(API_ENDPOINTS.USER_INFO)
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status}`)
       }

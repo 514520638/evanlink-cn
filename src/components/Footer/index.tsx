@@ -89,9 +89,9 @@ export const Footer: React.FC = () => {
           centered
         >
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            {userInfo?.wechatQrCode ? (
+            {userInfo?.wechat ? (
               <img
-                src={userInfo.wechatQrCode}
+                src={userInfo.wechat}
                 alt="WeChat QR Code"
                 style={{ maxWidth: '200px', borderRadius: '8px' }}
               />
@@ -110,14 +110,23 @@ export const Footer: React.FC = () => {
         </Modal>
 
         <div className={styles.bottom}>
-          <div className={styles.copyright}>
-            <span>
-              © {currentYear} Evan. {t('footer.copyright')}
-            </span>
+          <div className={styles.bottomLeft}>
+            <div className={styles.copyright}>
+              <span>
+                © {currentYear} Evan. {t('footer.copyright')}
+              </span>
+            </div>
+
+            <div className={styles.powered}>
+              <span>{t('footer.powered_by')} React + Ant Design</span>
+            </div>
           </div>
 
-          <div className={styles.powered}>
-            <span>{t('footer.powered_by')} React + Ant Design</span>
+          <div className={styles.beian}>
+            <svg className={styles.beianIcon} viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+            </svg>
+            <span className={styles.beianText}>蜀ICP备2024053023号-1</span>
           </div>
         </div>
       </div>

@@ -16,7 +16,6 @@ export const Home: React.FC = () => {
 
   const featuredArticles = articles.filter((article) => article.featured).slice(0, 3)
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
-  console.log(111111, userInfo)
 
   return (
     <div className={styles.home}>

@@ -110,17 +110,24 @@
   margin-bottom: 48px;
 }
 
-.sectionHeader h2 {
+.sectionHeader :global(h2),
+.sectionHeader :global(.ant-typography) {
   margin-bottom: 8px !important;
+  color: rgba(0, 0, 0, 0.85) !important;
 }
 
-.sectionHeader p {
-  color: rgba(0, 0, 0, 0.65);
+[data-theme='dark'] .sectionHeader :global(h2),
+[data-theme='dark'] .sectionHeader :global(.ant-typography) {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.sectionHeader :global(p) {
+  color: rgba(0, 0, 0, 0.65) !important;
   font-size: 16px;
 }
 
-[data-theme='dark'] .sectionHeader p {
-  color: rgba(255, 255, 255, 0.65);
+[data-theme='dark'] .sectionHeader :global(p) {
+  color: rgba(255, 255, 255, 0.65) !important;
 }
 
 .moreLink {

@@ -6,8 +6,8 @@
   color: #000000;
 }
 
-:root[data-theme='dark'] .footer {
-  background: #141414 !important;
+[data-theme='dark'] .footer {
+  background: #1f1f1f !important;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
@@ -139,6 +139,11 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] .bottom {
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -146,6 +151,21 @@
     flex-direction: column;
     gap: 12px;
     text-align: center;
+  }
+}
+
+.bottomLeft {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .bottomLeft {
+    flex-direction: column;
+    gap: 12px;
   }
 }
 
@@ -158,4 +178,55 @@
 [data-theme='dark'] .copyright,
 [data-theme='dark'] .powered {
   color: rgba(255, 255, 255, 0.45);
+}
+
+.beian {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.beianIcon {
+  width: 14px;
+  height: 14px;
+  color: rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+}
+
+:root[data-theme='dark'] .beianIcon {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.beianText {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='dark'] .beianText {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Modal暗色主题支持 */
+:global(.ant-modal-content) {
+  background: #ffffff !important;
+}
+
+:global([data-theme='dark'] .ant-modal-content) {
+  background: #1f1f1f !important;
+}
+
+:global(.ant-modal-title) {
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+
+:global([data-theme='dark'] .ant-modal-title) {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+:global(.ant-modal-close-x) {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+:global([data-theme='dark'] .ant-modal-close-x) {
+  color: rgba(255, 255, 255, 0.45) !important;
 }
