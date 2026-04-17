@@ -8,6 +8,9 @@ export const API_ENDPOINTS = {
   
   // 简历验证
   RESUME_VERIFY: `${API_BASE_URL}/resume/verify`,
+  
+  // 技能数据
+  SKILLS: `${API_BASE_URL}/skills`,
 } as const
 
 // 导出基础URL
