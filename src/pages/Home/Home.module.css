@@ -134,3 +134,43 @@
   text-align: center;
   margin-top: 48px;
 }
+
+/* Hero Buttons暗色主题 */
+.heroButtons :global(.ant-btn-primary) {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+[data-theme='dark'] .heroButtons :global(.ant-btn-primary) {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+[data-theme='dark'] .heroButtons :global(.ant-btn-primary:hover) {
+  background: #40a9ff !important;
+  border-color: #40a9ff !important;
+  color: #fff !important;
+}
+
+[data-theme='dark'] .heroButtons :global(.ant-btn:not(.ant-btn-primary)) {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme='dark'] .heroButtons :global(.ant-btn:not(.ant-btn-primary):hover) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+/* 更多链接按钮暗色主题 */
+[data-theme='dark'] .moreLink :global(.ant-btn-link) {
+  color: #1890ff;
+}
+
+[data-theme='dark'] .moreLink :global(.ant-btn-link:hover) {
+  color: #40a9ff;
+}

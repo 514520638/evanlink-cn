@@ -124,3 +124,8 @@
   border: none;
   color: #1890ff;
 }
+
+[data-theme='dark'] .tag {
+  background: rgba(24, 144, 255, 0.2);
+  color: #40a9ff;
+}
