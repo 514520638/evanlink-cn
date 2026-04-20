@@ -2,15 +2,25 @@
   "nav": {
     "home": "Home",
     "blog": "Blog",
-    "about": "About",
-    "projects": "Projects",
-    "friends": "Friends"
+    "about": "About"
   },
   "hero": {
     "title": "Hi, I'm ",
     "subtitle": "A full-stack engineer passionate about building high-performance systems",
-    "cta_read": "Read Articles",
+    "cta_about": "Learn More",
     "cta_code": "View Code"
+  },
+  "about": {
+    "title": "About Me",
+    "subtitle": "A curious engineer who loves technology",
+    "bio_title": "Biography",
+    "skills_title": "Skills",
+    "resume_download": "Download Resume",
+    "resume_view": "View Resume",
+    "contact_title": "Contact",
+    "email": "Email",
+    "github": "GitHub",
+    "twitter": "Twitter"
   },
   "blog": {
     "title": "Technical Articles",
@@ -32,31 +42,6 @@
     "prev": "Previous",
     "next": "Next",
     "comments": "Comments"
-  },
-  "about": {
-    "title": "About Me",
-    "subtitle": "A curious engineer who loves technology",
-    "bio_title": "Biography",
-    "skills_title": "Skills",
-    "resume_download": "Download Resume",
-    "resume_view": "View Resume",
-    "contact_title": "Contact",
-    "email": "Email",
-    "github": "GitHub",
-    "twitter": "Twitter"
-  },
-  "projects": {
-    "title": "Projects",
-    "subtitle": "My Side Projects & Open Source Contributions",
-    "source_code": "Source Code",
-    "live_demo": "Live Demo",
-    "technologies": "Technologies"
-  },
-  "friends": {
-    "title": "Friends Links",
-    "subtitle": "Websites from friends with shared interests",
-    "apply": "Apply for Link",
-    "apply_desc": "If you have your own blog or website, feel free to exchange links!"
   },
   "footer": {
     "copyright": "All rights reserved",

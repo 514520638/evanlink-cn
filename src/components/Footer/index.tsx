@@ -39,7 +39,6 @@ export const Footer: React.FC = () => {
               <a href="/">首页</a>
               <a href="/blog">博客</a>
               <a href="/about">关于</a>
-              <a href="/projects">项目</a>
             </div>
 
             <div className={styles.linkGroup}>

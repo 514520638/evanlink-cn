@@ -46,9 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
   const menuItems = [
     { key: '/', label: t('nav.home') },
     { key: '/blog', label: t('nav.blog') },
-    { key: '/projects', label: t('nav.projects') },
     { key: '/about', label: t('nav.about') },
-    { key: '/friends', label: t('nav.friends') },
   ]
 
   const currentKey =

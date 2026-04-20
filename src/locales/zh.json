@@ -2,14 +2,12 @@
   "nav": {
     "home": "首页",
     "blog": "博客",
-    "about": "关于我",
-    "projects": "项目",
-    "friends": "友链"
+    "about": "关于我"
   },
   "hero": {
     "title": "你好，我是 ",
     "subtitle": "一名全栈工程师，热衷于构建高性能系统",
-    "cta_read": "阅读文章",
+    "cta_about": "了解更多",
     "cta_code": "查看代码"
   },
   "blog": {
@@ -44,19 +42,6 @@
     "email": "邮箱",
     "github": "GitHub",
     "twitter": "Twitter"
-  },
-  "projects": {
-    "title": "项目展示",
-    "subtitle": "我的 Side Project 与开源贡献",
-    "source_code": "源码",
-    "live_demo": "在线演示",
-    "technologies": "技术栈"
-  },
-  "friends": {
-    "title": "友情链接",
-    "subtitle": "志同道合的朋友们的网站",
-    "apply": "申请友链",
-    "apply_desc": "如果你也有自己的博客或网站，欢迎交换友链！"
   },
   "footer": {
     "copyright": "版权所有",

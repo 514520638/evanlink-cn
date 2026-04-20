@@ -1,17 +1,11 @@
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import { ConfigProvider, theme } from 'antd'
 import { Provider } from 'react-redux'
 import { store } from './store'
 import { useAppDispatch, useAppSelector } from './store/hooks'
 import { fetchUserInfo } from './store/slices/userInfoSlice'
-import { Layout } from './components/Layout'
-import { Home } from './pages/Home'
-import { Blog } from './pages/Blog'
-import { Article } from './pages/Article'
-import { About } from './pages/About'
-import { Projects } from './pages/Projects'
-import { Friends } from './pages/Friends'
+import { AppRouter } from './router'
 import { useTheme } from './hooks/useTheme'
 import zhCN from 'antd/locale/zh_CN'
 import enUS from 'antd/locale/en_US'
@@ -63,16 +57,7 @@ const AppContent: React.FC = () => {
     <ConfigProvider theme={darkThemeConfig} locale={antdLocale}>
       <AppInitializer>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="blog" element={<Blog />} />
-              <Route path="blog/:slug" element={<Article />} />
-              <Route path="about" element={<About />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="friends" element={<Friends />} />
-            </Route>
-          </Routes>
+          <AppRouter />
         </BrowserRouter>
       </AppInitializer>
     </ConfigProvider>

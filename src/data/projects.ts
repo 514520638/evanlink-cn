@@ -1,4 +1,4 @@
-import type { Project, Friend, AboutInfo } from '../types/index'
+import type { Project } from '../types/index'
 
 export const projects: Project[] = [
   {
@@ -35,41 +35,6 @@ export const projects: Project[] = [
     technologies: ['Shell', 'Docker', 'Nginx', 'LetsEncrypt'],
     githubUrl: 'https://github.com/example/docker-deploy',
     featured: false,
-  },
-]
-
-export const friends: Friend[] = [
-  {
-    id: '1',
-    name: '张三的博客',
-    avatar: 'https://via.placeholder.com/100x100/ff6b6b/ffffff?text=Z',
-    website: 'https://zhangsan.com',
-    description: '全栈开发者的技术分享',
-    descriptionEn: 'Full-stack developer sharing technical insights',
-  },
-  {
-    id: '2',
-    name: '李四的技术站',
-    avatar: 'https://via.placeholder.com/100x100/4ecdc4/ffffff?text=L',
-    website: 'https://lisi.tech',
-    description: '专注于 DevOps 与云原生',
-    descriptionEn: 'Focusing on DevOps and Cloud Native',
-  },
-  {
-    id: '3',
-    name: '王五的小站',
-    avatar: 'https://via.placeholder.com/100x100/45b7d1/ffffff?text=W',
-    website: 'https://wangwu.io',
-    description: '独立开发者的日常',
-    descriptionEn: 'Independent developer daily',
-  },
-  {
-    id: '4',
-    name: '赵六的笔记',
-    avatar: 'https://via.placeholder.com/100x100/96ceb4/ffffff?text=Z',
-    website: 'https://zhaoliu.me',
-    description: '学习笔记与技术总结',
-    descriptionEn: 'Learning notes and technical summaries',
   },
 ]
 
