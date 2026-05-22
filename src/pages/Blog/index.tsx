@@ -1,34 +1,80 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input, Row, Col, Select, Tag, Typography, Empty } from 'antd'
-import { SearchOutlined } from '@ant-design/icons'
-import { articles, categories, allTags, searchArticles } from '../../data/articles'
+import { Input, Row, Col, Select, Tag, Typography, Empty, Button } from 'antd'
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
+import { Link, useNavigate } from 'react-router-dom'
+import { articles as staticArticles, categories, allTags, searchArticles } from '../../data/articles'
 import { ArticleCard } from '../../components/ArticleCard'
+import type { Article } from '../../types'
 import styles from './Blog.module.css'
 
 const { Title, Paragraph } = Typography
 
+// localStorage 存储 key
+const ARTICLES_STORAGE_KEY = 'blog_articles'
+
+// 获取存储的文章
+const getStoredArticles = (): Article[] => {
+  const stored = localStorage.getItem(ARTICLES_STORAGE_KEY)
+  return stored ? JSON.parse(stored) : []
+}
+
 export const Blog: React.FC = () => {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
+  const navigate = useNavigate()
 
+  const [storedArticles, setStoredArticles] = useState<Article[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('全部')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
+  // 监听本地存储变化
+  useEffect(() => {
+    const loadArticles = () => {
+      setStoredArticles(getStoredArticles())
+    }
+    loadArticles()
+    
+    // 监听存储变化
+    const handleStorageChange = () => {
+      loadArticles()
+    }
+    window.addEventListener('storage', handleStorageChange)
+    
+    // 也监听自定义事件（用于同页面更新）
+    window.addEventListener('articlesUpdated', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('articlesUpdated', handleStorageChange)
+    }
+  }, [])
+
+  // 合并静态和存储的文章
+  const allArticles = useMemo(() => {
+    const storedIds = storedArticles.map(a => a.id)
+    const uniqueStaticArticles = staticArticles.filter(a => !storedIds.includes(a.id))
+    return [...storedArticles, ...uniqueStaticArticles]
+  }, [storedArticles])
+
   const filteredArticles = useMemo(() => {
-    let result = articles
+    let result = allArticles
 
     // 搜索过滤
     if (searchQuery) {
-      result = searchArticles(searchQuery)
+      result = result.filter(
+        (article) =>
+          article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (article.titleEn?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+          article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (article.excerptEn?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      )
     }
 
     // 分类过滤
     if (selectedCategory !== '全部') {
-      result = result.filter((article) =>
-        isZh ? article.category === selectedCategory : article.category === selectedCategory
-      )
+      result = result.filter((article) => article.category === selectedCategory)
     }
 
     // 标签过滤
@@ -39,7 +85,7 @@ export const Blog: React.FC = () => {
     }
 
     return result
-  }, [searchQuery, selectedCategory, selectedTags, isZh])
+  }, [allArticles, searchQuery, selectedCategory, selectedTags])
 
   const handleTagClick = (tag: string) => {
     setSelectedTags((prev) =>
@@ -50,8 +96,19 @@ export const Blog: React.FC = () => {
   return (
     <div className={styles.blog}>
       <div className={styles.header}>
-        <Title level={1}>{t('blog.title')}</Title>
-        <Paragraph>{t('blog.subtitle')}</Paragraph>
+        <div className={styles.titleRow}>
+          <div>
+            <Title level={1}>{t('blog.title')}</Title>
+            <Paragraph>{t('blog.subtitle')}</Paragraph>
+          </div>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/editor')}
+          >
+            {t('nav.editor')}
+          </Button>
+        </div>
       </div>
 
       <div className={styles.filters}>

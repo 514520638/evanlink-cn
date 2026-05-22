@@ -8,6 +8,12 @@
   margin-bottom: 48px;
 }
 
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 .title {
   font-size: 36px;
   margin-bottom: 16px !important;

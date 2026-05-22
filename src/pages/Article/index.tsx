@@ -1,24 +1,66 @@
-import React, { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Typography, Tag, Button, message } from 'antd'
-import { CopyOutlined, CalendarOutlined, EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { CopyOutlined, CalendarOutlined, EyeOutlined, ClockCircleOutlined, ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { getArticleBySlug, articles } from '../../data/articles'
+import { getArticleBySlug, articles as staticArticles } from '../../data/articles'
+import type { Article as ArticleType } from '../../types'
 import styles from './Article.module.css'
 
-const { Title, Paragraph, Text } = Typography
+const { Title, Text } = Typography
 
-export const Article: React.FC = () => {
+// localStorage 存储 key
+const ARTICLES_STORAGE_KEY = 'blog_articles'
+
+// 获取存储的文章
+const getStoredArticles = (): ArticleType[] => {
+  const stored = localStorage.getItem(ARTICLES_STORAGE_KEY)
+  return stored ? JSON.parse(stored) : []
+}
+
+// 根据 slug 获取文章
+const findArticleBySlug = (slug: string): ArticleType | undefined => {
+  // 先从存储的文章中查找
+  const stored = getStoredArticles()
+  const storedArticle = stored.find((a) => a.slug === slug)
+  if (storedArticle) return storedArticle
+
+  // 再从静态文章中查找
+  return getArticleBySlug(slug)
+}
+
+// 获取所有文章
+const getAllArticles = (): ArticleType[] => {
+  const stored = getStoredArticles()
+  const storedIds = stored.map(a => a.id)
+  const uniqueStatic = staticArticles.filter(a => !storedIds.includes(a.id))
+  return [...stored, ...uniqueStatic]
+}
+
+export const ArticlePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
+  const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
 
-  const article = slug ? getArticleBySlug(slug) : undefined
+  const article = slug ? findArticleBySlug(slug) : undefined
+
+  // 更新浏览量
+  useEffect(() => {
+    if (article && slug) {
+      const stored = getStoredArticles()
+      const index = stored.findIndex((a) => a.slug === slug)
+      if (index !== -1) {
+        stored[index].views = (stored[index].views || 0) + 1
+        localStorage.setItem(ARTICLES_STORAGE_KEY, JSON.stringify(stored))
+      }
+    }
+  }, [])
 
   if (!article) {
     return (
@@ -33,12 +75,13 @@ export const Article: React.FC = () => {
     )
   }
 
-  const title = isZh ? article.title : article.titleEn
+  const title = isZh ? article.title : (article.titleEn || article.title)
 
   // 获取上一篇和下一篇文章
-  const currentIndex = articles.findIndex((a) => a.id === article.id)
-  const prevArticle = currentIndex > 0 ? articles[currentIndex - 1] : null
-  const nextArticle = currentIndex < articles.length - 1 ? articles[currentIndex + 1] : null
+  const allArticles = getAllArticles()
+  const currentIndex = allArticles.findIndex((a) => a.slug === article.slug)
+  const prevArticle = currentIndex > 0 ? allArticles[currentIndex - 1] : null
+  const nextArticle = currentIndex < allArticles.length - 1 ? allArticles[currentIndex + 1] : null
 
   const handleCopyCode = async (code: string) => {
     try {
@@ -54,9 +97,17 @@ export const Article: React.FC = () => {
   return (
     <div className={styles.article}>
       <div className={styles.header}>
-        <Link to="/blog" className={styles.backLink}>
-          <ArrowLeftOutlined /> {isZh ? '返回列表' : 'Back to list'}
-        </Link>
+        <div className={styles.headerActions}>
+          <Link to="/blog" className={styles.backLink}>
+            <ArrowLeftOutlined /> {isZh ? '返回列表' : 'Back to list'}
+          </Link>
+          <Button 
+            icon={<EditOutlined />} 
+            onClick={() => navigate(`/editor/${article.slug}`)}
+          >
+            {isZh ? '编辑' : 'Edit'}
+          </Button>
+        </div>
         <Title level={1} className={styles.title}>
           {title}
         </Title>
@@ -72,7 +123,7 @@ export const Article: React.FC = () => {
           </span>
         </div>
         <div className={styles.tags}>
-          {article.tags.map((tag) => (
+          {article.tags.map((tag: string) => (
             <Tag key={tag} color="blue">
               {tag}
             </Tag>
@@ -122,7 +173,7 @@ export const Article: React.FC = () => {
         {prevArticle ? (
           <Link to={`/blog/${prevArticle.slug}`} className={styles.navLink}>
             <Text type="secondary">{t('article.prev')}: </Text>
-            <Text>{isZh ? prevArticle.title : prevArticle.titleEn}</Text>
+            <Text>{isZh ? prevArticle.title : (prevArticle.titleEn || prevArticle.title)}</Text>
           </Link>
         ) : (
           <span />
@@ -130,7 +181,7 @@ export const Article: React.FC = () => {
         {nextArticle ? (
           <Link to={`/blog/${nextArticle.slug}`} className={styles.navLink}>
             <Text type="secondary">{t('article.next')}: </Text>
-            <Text>{isZh ? nextArticle.title : nextArticle.titleEn}</Text>
+            <Text>{isZh ? nextArticle.title : (nextArticle.titleEn || nextArticle.title)}</Text>
           </Link>
         ) : (
           <span />

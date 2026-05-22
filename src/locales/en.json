@@ -2,7 +2,8 @@
   "nav": {
     "home": "Home",
     "blog": "Blog",
-    "about": "About"
+    "about": "About",
+    "editor": "Write"
   },
   "hero": {
     "title": "Hi, I'm ",

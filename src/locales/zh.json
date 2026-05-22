@@ -2,7 +2,8 @@
   "nav": {
     "home": "首页",
     "blog": "博客",
-    "about": "关于我"
+    "about": "关于我",
+    "editor": "写文章"
   },
   "hero": {
     "title": "你好，我是 ",
