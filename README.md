@@ -126,7 +126,7 @@ dist/
 ### 2. 上传到服务器
 
 ```bash
-scp -r dist/* root@服务器IP:/opt/evanlink-frontend/html/
+scp -r dist/* root@62.234.72.18:/opt/evanlink-frontend/html/
 ```
 
 注意：线上 Nginx 实际 root 是 `/opt/evanlink-frontend/html`，不要上传到 `/var/www/evanlink-cn`。
