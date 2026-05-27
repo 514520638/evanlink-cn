@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input, Row, Col, Select, Tag, Typography, Empty, Button } from 'antd'
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
-import { Link, useNavigate } from 'react-router-dom'
-import { articles as staticArticles, categories, allTags, searchArticles } from '../../data/articles'
+import { useNavigate } from 'react-router-dom'
+import { articles as staticArticles, categories, allTags } from '../../data/articles'
 import { ArticleCard } from '../../components/ArticleCard'
 import type { Article } from '../../types'
 import styles from './Blog.module.css'
@@ -20,8 +20,7 @@ const getStoredArticles = (): Article[] => {
 }
 
 export const Blog: React.FC = () => {
-  const { t, i18n } = useTranslation()
-  const isZh = i18n.language === 'zh'
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [storedArticles, setStoredArticles] = useState<Article[]>([])

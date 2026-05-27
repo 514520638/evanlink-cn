@@ -1,5 +1,5 @@
 // API配置
-const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:8080/api`
+const API_BASE_URL = '/api'
 
 // API端点
 export const API_ENDPOINTS = {

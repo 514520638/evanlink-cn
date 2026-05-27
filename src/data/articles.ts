@@ -274,8 +274,8 @@ export const searchArticles = (query: string): Article[] => {
   return articles.filter(
     article =>
       article.title.toLowerCase().includes(lowerQuery) ||
-      article.titleEn.toLowerCase().includes(lowerQuery) ||
+      (article.titleEn?.toLowerCase().includes(lowerQuery) ?? false) ||
       article.excerpt.toLowerCase().includes(lowerQuery) ||
-      article.excerptEn.toLowerCase().includes(lowerQuery)
+      (article.excerptEn?.toLowerCase().includes(lowerQuery) ?? false)
   );
 };

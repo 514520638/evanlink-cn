@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm'
 import type { Article } from '../../types'
 import styles from './Editor.module.css'
 
-const { Title, Text } = Typography
+const { Title } = Typography
 const { TextArea } = Input
 
 // localStorage 存储 key
@@ -39,7 +39,7 @@ const generateSlug = (title: string) => {
 }
 
 export const Editor: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const { slug } = useParams<{ slug: string }>()
   const isZh = i18n.language === 'zh'
@@ -64,7 +64,7 @@ export const Editor: React.FC = () => {
         setTitle(article.title)
         setTitleEn(article.titleEn || '')
         setContent(article.content)
-        setCategory(article.category)
+        setCategory(article.category || '前端')
         setTags(article.tags || [])
         setIsEditing(true)
       }
@@ -128,7 +128,7 @@ export const Editor: React.FC = () => {
     }
 
     const articles = getStoredArticles()
-    const now = new Date().toISOString().split('T')[0]
+    const now = new Date().toISOString().split('T')[0] ?? ''
     const articleSlug = slug || generateSlug(title)
 
     const article: Article = {

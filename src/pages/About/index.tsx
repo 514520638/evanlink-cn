@@ -23,7 +23,6 @@ import {
   PhoneOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { aboutInfo } from '../../data/projects'
 import { API_ENDPOINTS } from '../../config/api'
 import styles from './About.module.css'
 import { useAppSelector } from '../../store/hooks'
