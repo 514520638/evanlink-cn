@@ -30,7 +30,7 @@ export const Home: React.FC = () => {
           <div className={styles.heroButtons}>
             <Link to="/blog">
               <Button type="primary" size="large" icon={<ArrowRightOutlined />}>
-                {t('hero.cta_read')}
+                {t('hero.cta_blog')}
               </Button>
             </Link>
             <a href="https://github.com/514520638" target="_blank" rel="noopener noreferrer">

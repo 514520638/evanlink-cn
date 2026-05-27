@@ -9,6 +9,7 @@ export interface UserInfo {
   bioEn?: string
   github?: string
   gitee?: string
+  resumeUrl?: string
   wechatId?: string
   wechatQrCode?: string
   phone?: string

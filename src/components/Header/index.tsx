@@ -14,6 +14,7 @@ import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
 import styles from './Header.module.css'
 import { useAppSelector } from '../../store/hooks'
+import { useIdleImagePreload } from '../../hooks/useIdleImagePreload'
 
 const { Header: AntHeader } = Layout
 interface HeaderProps {
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
   const [isMobile, setIsMobile] = useState(false)
   const [wechatModalOpen, setWechatModalOpen] = useState(false)
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
+  useIdleImagePreload(userInfo?.wechat)
 
   // 检测是否为移动端
   useEffect(() => {

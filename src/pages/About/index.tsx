@@ -26,6 +26,7 @@ import {
 import { API_ENDPOINTS } from '../../config/api'
 import styles from './About.module.css'
 import { useAppSelector } from '../../store/hooks'
+import { useIdleImagePreload } from '../../hooks/useIdleImagePreload'
 
 const { Title, Paragraph } = Typography
 
@@ -51,6 +52,7 @@ export const About: React.FC = () => {
   const [skillsData, setSkillsData] = useState<SkillCategory[]>([])
 
   const isZh = i18n.language === 'zh'
+  useIdleImagePreload(userInfo?.wechat)
 
   // 请求skills数据
   useEffect(() => {
@@ -161,7 +163,7 @@ export const About: React.FC = () => {
                 </a>
               )}
 
-              {userInfo?.resumeUrl && (
+              {
                 <Button
                   type="primary"
                   icon={<EyeOutlined />}
@@ -169,7 +171,7 @@ export const About: React.FC = () => {
                 >
                   {t('about.resume_view')}
                 </Button>
-              )}
+              }
             </div>
           </Card>
         </Col>
