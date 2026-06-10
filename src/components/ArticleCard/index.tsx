@@ -14,8 +14,8 @@ interface ArticleCardProps {
 export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
   const isZh = true // 可以根据上下文调整
 
-  const title = isZh ? article.title : article.titleEn
-  const excerpt = isZh ? article.excerpt : article.excerptEn
+  const title = (isZh ? article.title : article.titleEn) || article.title
+  const excerpt = (isZh ? article.excerpt : article.excerptEn) || article.excerpt
 
   return (
     <Link to={`/blog/${article.slug}`} className={styles.link}>
@@ -42,7 +42,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
               </span>
             </div>
             <div className={styles.tags}>
-              {article.tags.slice(0, 2).map((tag) => (
+              {(article.tags || []).slice(0, 2).map((tag) => (
                 <Tag key={tag} className={styles.tag}>
                   {tag}
                 </Tag>

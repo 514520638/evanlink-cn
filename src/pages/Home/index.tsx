@@ -1,12 +1,13 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Button, Row, Col, Typography } from 'antd'
 import { ArrowRightOutlined, GithubOutlined } from '@ant-design/icons'
-import { articles } from '../../data/articles'
 import { ArticleCard } from '../../components/ArticleCard'
 import styles from './Home.module.css'
 import { useAppSelector } from '../../store/hooks'
+import { fetchArticles } from '../../api/articles'
+import type { Article } from '../../types'
 
 const { Title, Paragraph } = Typography
 
@@ -14,8 +15,28 @@ export const Home: React.FC = () => {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
 
-  const featuredArticles = articles.filter((article) => article.featured).slice(0, 3)
+  const [featuredArticles, setFeaturedArticles] = useState<Article[]>([])
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
+
+  useEffect(() => {
+    let mounted = true
+
+    fetchArticles({ page: 1, pageSize: 3 })
+      .then((data) => {
+        if (mounted) {
+          setFeaturedArticles(data.items)
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setFeaturedArticles([])
+        }
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <div className={styles.home}>
@@ -55,26 +76,28 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Featured Articles */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <Title level={2}>{t('blog.title')}</Title>
-          <Paragraph>{t('blog.subtitle')}</Paragraph>
-        </div>
-        <Row gutter={[24, 24]}>
-          {featuredArticles.map((article) => (
-            <Col key={article.id} xs={24} sm={12} lg={8}>
-              <ArticleCard article={article} />
-            </Col>
-          ))}
-        </Row>
-        <div className={styles.moreLink}>
-          <Link to="/blog">
-            <Button type="link" size="large">
-              {t('blog.load_more')} <ArrowRightOutlined />
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {featuredArticles.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <Title level={2}>{t('blog.title')}</Title>
+            <Paragraph>{t('blog.subtitle')}</Paragraph>
+          </div>
+          <Row gutter={[24, 24]}>
+            {featuredArticles.map((article) => (
+              <Col key={article.id ?? article.slug} xs={24} sm={12} lg={8}>
+                <ArticleCard article={article} />
+              </Col>
+            ))}
+          </Row>
+          <div className={styles.moreLink}>
+            <Link to="/blog">
+              <Button type="link" size="large">
+                {t('blog.load_more')} <ArrowRightOutlined />
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

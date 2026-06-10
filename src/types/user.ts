@@ -1,8 +1,10 @@
 // 用户信息类型定义
 export interface UserInfo {
-  id?: string
+  id?: string | number
   name?: string
   nameEn?: string
+  title?: string
+  titleEn?: string
   email?: string
   avatar?: string
   bio?: string
@@ -10,9 +12,11 @@ export interface UserInfo {
   github?: string
   gitee?: string
   resumeUrl?: string
+  wechat?: string
   wechatId?: string
   wechatQrCode?: string
   phone?: string
+  phoneNumber?: string
   visitorNumber?: number
   [key: string]: any
 }
