@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '../config/api'
+import { getAdminAuthHeaders } from '../utils/adminAuth'
 import type {
   Article,
   ArticleFilters,
@@ -9,11 +10,11 @@ import type {
 
 const requestJson = async <T>(url: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(url, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
-    ...options,
   })
 
   if (!response.ok) {
@@ -54,6 +55,7 @@ export const fetchArticleBySlug = (slug: string) => {
 export const createArticle = (payload: ArticleSavePayload) => {
   return requestJson<Article>(API_ENDPOINTS.ARTICLES, {
     method: 'POST',
+    headers: getAdminAuthHeaders(),
     body: JSON.stringify(payload),
   })
 }
@@ -61,6 +63,7 @@ export const createArticle = (payload: ArticleSavePayload) => {
 export const updateArticle = (id: string | number, payload: ArticleSavePayload) => {
   return requestJson<Article>(`${API_ENDPOINTS.ARTICLES}/${id}`, {
     method: 'PUT',
+    headers: getAdminAuthHeaders(),
     body: JSON.stringify(payload),
   })
 }
@@ -68,6 +71,7 @@ export const updateArticle = (id: string | number, payload: ArticleSavePayload) 
 export const deleteArticle = (id: string | number) => {
   return requestJson<void>(`${API_ENDPOINTS.ARTICLES}/${id}`, {
     method: 'DELETE',
+    headers: getAdminAuthHeaders(),
   })
 }
 

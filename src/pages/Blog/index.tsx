@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArticleCard } from '../../components/ArticleCard'
 import { fetchArticleFilters, fetchArticles } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleTagOption } from '../../types'
+import { getAdminToken } from '../../utils/adminAuth'
 import styles from './Blog.module.css'
 
 const { Title, Paragraph } = Typography
@@ -75,6 +76,16 @@ export const Blog: React.FC = () => {
     ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
   ]
 
+  const handleWriteArticle = () => {
+    if (getAdminToken()) {
+      navigate('/editor')
+      return
+    }
+
+    message.warning('请先登录后再写文章')
+    navigate('/admin?redirect=/editor')
+  }
+
   return (
     <div className={styles.blog}>
       <div className={styles.header}>
@@ -83,7 +94,7 @@ export const Blog: React.FC = () => {
             <Title level={1}>{t('blog.title')}</Title>
             <Paragraph>{t('blog.subtitle')}</Paragraph>
           </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/editor')}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleWriteArticle}>
             {t('nav.editor')}
           </Button>
         </div>

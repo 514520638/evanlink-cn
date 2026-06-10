@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -17,10 +18,10 @@ import { API_ENDPOINTS } from '../../config/api'
 import { useAppDispatch } from '../../store/hooks'
 import { fetchUserInfo } from '../../store/slices/userInfoSlice'
 import type { UserInfo } from '../../types/user'
+import { ADMIN_TOKEN_KEY, clearAdminToken, setAdminToken } from '../../utils/adminAuth'
 import styles from './AdminProfile.module.css'
 
 const { Title, Paragraph } = Typography
-const ADMIN_TOKEN_KEY = 'admin_profile_token'
 
 interface SkillFormItem {
   id?: number
@@ -42,11 +43,14 @@ interface AdminProfileResponse {
 
 export const AdminProfile: React.FC = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [loginForm] = Form.useForm()
   const [profileForm] = Form.useForm<ProfileFormValues>()
   const [token, setToken] = useState(() => localStorage.getItem(ADMIN_TOKEN_KEY) || '')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const redirectPath = searchParams.get('redirect')
 
   const authed = Boolean(token)
   const headers = useMemo(
@@ -65,7 +69,7 @@ export const AdminProfile: React.FC = () => {
   }
 
   const clearToken = () => {
-    localStorage.removeItem(ADMIN_TOKEN_KEY)
+    clearAdminToken()
     setToken('')
   }
 
@@ -107,9 +111,12 @@ export const AdminProfile: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.message || '登录失败')
       }
-      localStorage.setItem(ADMIN_TOKEN_KEY, data.token)
+      setAdminToken(data.token)
       setToken(data.token)
       message.success('登录成功')
+      if (redirectPath) {
+        navigate(redirectPath, { replace: true })
+      }
     } catch (error) {
       message.error(error instanceof Error ? error.message : '登录失败')
     } finally {

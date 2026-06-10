@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { fetchArticleBySlug, increaseArticleView } from '../../api/articles'
 import type { Article as ArticleType } from '../../types'
+import { getAdminToken } from '../../utils/adminAuth'
 import styles from './Article.module.css'
 
 const { Title } = Typography
@@ -69,6 +70,18 @@ export const ArticlePage: React.FC = () => {
     }
   }
 
+  const handleEdit = () => {
+    if (!article) return
+    const editorPath = `/editor/${article.slug}`
+    if (getAdminToken()) {
+      navigate(editorPath)
+      return
+    }
+
+    message.warning(isZh ? '请先登录后再编辑文章' : 'Please log in before editing')
+    navigate(`/admin?redirect=${encodeURIComponent(editorPath)}`)
+  }
+
   if (loading) {
     return (
       <div className={styles.article}>
@@ -99,7 +112,7 @@ export const ArticlePage: React.FC = () => {
           <Link to="/blog" className={styles.backLink}>
             <ArrowLeftOutlined /> {isZh ? '返回列表' : 'Back to list'}
           </Link>
-          <Button icon={<EditOutlined />} onClick={() => navigate(`/editor/${article.slug}`)}>
+          <Button icon={<EditOutlined />} onClick={handleEdit}>
             {isZh ? '编辑' : 'Edit'}
           </Button>
         </div>

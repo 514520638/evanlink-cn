@@ -15,6 +15,7 @@ import {
   updateArticle,
 } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleSavePayload, ArticleTagOption } from '../../types'
+import { getAdminToken } from '../../utils/adminAuth'
 import styles from './Editor.module.css'
 
 const { Title } = Typography
@@ -43,6 +44,13 @@ export const Editor: React.FC = () => {
   const isEditing = Boolean(slug)
 
   useEffect(() => {
+    if (!getAdminToken()) {
+      const targetPath = slug ? `/editor/${slug}` : '/editor'
+      message.warning(isZh ? '请先登录后再管理文章' : 'Please log in before managing articles')
+      navigate(`/admin?redirect=${encodeURIComponent(targetPath)}`, { replace: true })
+      return
+    }
+
     let mounted = true
     setLoading(true)
 
@@ -70,7 +78,7 @@ export const Editor: React.FC = () => {
     return () => {
       mounted = false
     }
-  }, [slug])
+  }, [isZh, navigate, slug])
 
   const fillArticle = (article: Article) => {
     setArticleId(article.id)
@@ -139,6 +147,11 @@ export const Editor: React.FC = () => {
       message.success(isZh ? '保存成功' : 'Saved successfully')
       navigate(`/blog/${saved.slug}`)
     } catch (error) {
+      if (error instanceof Error && error.message.includes('401')) {
+        message.error(isZh ? '登录已失效，请重新登录' : 'Login expired, please log in again')
+        navigate(`/admin?redirect=${encodeURIComponent(slug ? `/editor/${slug}` : '/editor')}`)
+        return
+      }
       message.error(error instanceof Error ? error.message : '保存失败')
     } finally {
       setSaving(false)
@@ -151,9 +164,18 @@ export const Editor: React.FC = () => {
       title: isZh ? '确认删除' : 'Confirm delete',
       content: isZh ? '确定要删除这篇文章吗？' : 'Are you sure you want to delete this article?',
       onOk: async () => {
-        await deleteArticle(articleId)
-        message.success(isZh ? '删除成功' : 'Deleted successfully')
-        navigate('/blog')
+        try {
+          await deleteArticle(articleId)
+          message.success(isZh ? '删除成功' : 'Deleted successfully')
+          navigate('/blog')
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('401')) {
+            message.error(isZh ? '登录已失效，请重新登录' : 'Login expired, please log in again')
+            navigate(`/admin?redirect=${encodeURIComponent(slug ? `/editor/${slug}` : '/editor')}`)
+            return
+          }
+          message.error(error instanceof Error ? error.message : '删除失败')
+        }
       },
     })
   }
