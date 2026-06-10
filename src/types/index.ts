@@ -22,6 +22,61 @@ export interface Article {
   views?: number;
   featured?: boolean;
   coverImage?: string;
+  categoryId?: number;
+  categoryEn?: string;
+  tagIds?: number[];
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+}
+
+export interface ArticleCategory {
+  id: number;
+  name: string;
+  nameEn?: string;
+  sortOrder?: number;
+}
+
+export interface ArticleTagOption {
+  id: number;
+  name: string;
+  nameEn?: string;
+  color?: string;
+  articleCount?: number;
+}
+
+export interface ArticleFilters {
+  categories: ArticleCategory[];
+  tags: ArticleTagOption[];
+}
+
+export interface PageResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface ArticleQueryParams {
+  keyword?: string;
+  categoryId?: number;
+  tagIds?: number[];
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ArticleSavePayload {
+  slug?: string;
+  title: string;
+  titleEn?: string;
+  excerpt?: string;
+  excerptEn?: string;
+  content: string;
+  categoryId?: number;
+  tagIds: number[];
+  author?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  featured?: boolean;
+  coverImage?: string;
 }
 
 // 项目类型

@@ -1,96 +1,79 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input, Row, Col, Select, Tag, Typography, Empty, Button } from 'antd'
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Col, Empty, Input, message, Pagination, Row, Select, Spin, Tag, Typography } from 'antd'
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { articles as staticArticles, categories, allTags } from '../../data/articles'
 import { ArticleCard } from '../../components/ArticleCard'
-import type { Article } from '../../types'
+import { fetchArticleFilters, fetchArticles } from '../../api/articles'
+import type { Article, ArticleCategory, ArticleTagOption } from '../../types'
 import styles from './Blog.module.css'
 
 const { Title, Paragraph } = Typography
-
-// localStorage 存储 key
-const ARTICLES_STORAGE_KEY = 'blog_articles'
-
-// 获取存储的文章
-const getStoredArticles = (): Article[] => {
-  const stored = localStorage.getItem(ARTICLES_STORAGE_KEY)
-  return stored ? JSON.parse(stored) : []
-}
+const DEFAULT_PAGE_SIZE = 10
 
 export const Blog: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const [storedArticles, setStoredArticles] = useState<Article[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
+  const [categories, setCategories] = useState<ArticleCategory[]>([])
+  const [tags, setTags] = useState<ArticleTagOption[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('全部')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>()
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
 
-  // 监听本地存储变化
   useEffect(() => {
-    const loadArticles = () => {
-      setStoredArticles(getStoredArticles())
-    }
-    loadArticles()
-    
-    // 监听存储变化
-    const handleStorageChange = () => {
-      loadArticles()
-    }
-    window.addEventListener('storage', handleStorageChange)
-    
-    // 也监听自定义事件（用于同页面更新）
-    window.addEventListener('articlesUpdated', handleStorageChange)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('articlesUpdated', handleStorageChange)
-    }
+    fetchArticleFilters()
+      .then((data) => {
+        setCategories(data.categories)
+        setTags(data.tags)
+      })
+      .catch((error) => {
+        message.error(error instanceof Error ? error.message : '加载筛选项失败')
+      })
   }, [])
 
-  // 合并静态和存储的文章
-  const allArticles = useMemo(() => {
-    const storedIds = storedArticles.map(a => a.id)
-    const uniqueStaticArticles = staticArticles.filter(a => !storedIds.includes(a.id))
-    return [...storedArticles, ...uniqueStaticArticles]
-  }, [storedArticles])
+  useEffect(() => {
+    const timer = window.setTimeout(async () => {
+      setLoading(true)
+      try {
+        const data = await fetchArticles({
+          keyword: searchQuery.trim() || undefined,
+          categoryId: selectedCategoryId,
+          tagIds: selectedTagIds,
+          page,
+          pageSize,
+        })
+        setArticles(data.items)
+        setTotal(data.total)
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '加载文章失败')
+      } finally {
+        setLoading(false)
+      }
+    }, 300)
 
-  const filteredArticles = useMemo(() => {
-    let result = allArticles
+    return () => window.clearTimeout(timer)
+  }, [searchQuery, selectedCategoryId, selectedTagIds, page, pageSize])
 
-    // 搜索过滤
-    if (searchQuery) {
-      result = result.filter(
-        (article) =>
-          article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (article.titleEn?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-          article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (article.excerptEn?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-      )
-    }
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery, selectedCategoryId, selectedTagIds])
 
-    // 分类过滤
-    if (selectedCategory !== '全部') {
-      result = result.filter((article) => article.category === selectedCategory)
-    }
-
-    // 标签过滤
-    if (selectedTags.length > 0) {
-      result = result.filter((article) =>
-        selectedTags.some((tag) => article.tags.includes(tag))
-      )
-    }
-
-    return result
-  }, [allArticles, searchQuery, selectedCategory, selectedTags])
-
-  const handleTagClick = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+  const handleTagClick = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     )
   }
+
+  const categoryOptions = [
+    { value: 0, label: '全部' },
+    ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+  ]
 
   return (
     <div className={styles.blog}>
@@ -100,11 +83,7 @@ export const Blog: React.FC = () => {
             <Title level={1}>{t('blog.title')}</Title>
             <Paragraph>{t('blog.subtitle')}</Paragraph>
           </div>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/editor')}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/editor')}>
             {t('nav.editor')}
           </Button>
         </div>
@@ -116,7 +95,7 @@ export const Blog: React.FC = () => {
             placeholder={t('blog.search')}
             prefix={<SearchOutlined />}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
             allowClear
           />
         </div>
@@ -125,25 +104,27 @@ export const Blog: React.FC = () => {
           <div className={styles.filterGroup}>
             <label>{t('blog.categories')}:</label>
             <Select
-              value={selectedCategory}
-              onChange={setSelectedCategory}
+              value={selectedCategoryId ?? 0}
+              onChange={(value) => setSelectedCategoryId(value === 0 ? undefined : value)}
               className={styles.select}
-              options={categories.map((cat) => ({ value: cat, label: cat }))}
+              options={categoryOptions}
             />
           </div>
 
           <div className={styles.filterGroup}>
             <label>{t('blog.tags')}:</label>
             <div className={styles.tags}>
-              {allTags.map((tag) => (
+              {tags.map((tag) => (
                 <Tag
-                  key={tag}
+                  key={tag.id}
+                  color={selectedTagIds.includes(tag.id) ? tag.color || 'blue' : undefined}
                   className={`${styles.tag} ${
-                    selectedTags.includes(tag) ? styles.tagActive : ''
+                    selectedTagIds.includes(tag.id) ? styles.tagActive : ''
                   }`}
-                  onClick={() => handleTagClick(tag)}
+                  onClick={() => handleTagClick(tag.id)}
                 >
-                  {tag}
+                  {tag.name}
+                  {typeof tag.articleCount === 'number' ? ` ${tag.articleCount}` : ''}
                 </Tag>
               ))}
             </div>
@@ -151,17 +132,33 @@ export const Blog: React.FC = () => {
         </div>
       </div>
 
-      {filteredArticles.length > 0 ? (
-        <Row gutter={[24, 24]}>
-          {filteredArticles.map((article) => (
-            <Col key={article.id} xs={24} sm={12} lg={8}>
-              <ArticleCard article={article} />
-            </Col>
-          ))}
-        </Row>
-      ) : (
-        <Empty description={t('blog.no_results')} className={styles.empty} />
-      )}
+      <Spin spinning={loading}>
+        {articles.length > 0 ? (
+          <>
+            <Row gutter={[24, 24]}>
+              {articles.map((article) => (
+                <Col key={article.id ?? article.slug} xs={24} sm={12} lg={8}>
+                  <ArticleCard article={article} />
+                </Col>
+              ))}
+            </Row>
+            <Pagination
+              className={styles.pagination}
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              pageSizeOptions={[DEFAULT_PAGE_SIZE, 20, 50]}
+              onChange={(nextPage, nextPageSize) => {
+                setPage(nextPage)
+                setPageSize(nextPageSize)
+              }}
+            />
+          </>
+        ) : (
+          <Empty description={t('blog.no_results')} className={styles.empty} />
+        )}
+      </Spin>
     </div>
   )
 }

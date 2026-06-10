@@ -11,6 +11,12 @@ export const API_ENDPOINTS = {
   
   // 技能数据
   SKILLS: `${API_BASE_URL}/skills`,
+
+  // 文章数据
+  ARTICLES: `${API_BASE_URL}/articles`,
+  ARTICLE_DETAIL: (slug: string) => `${API_BASE_URL}/articles/${slug}`,
+  ARTICLE_VIEW: (slug: string) => `${API_BASE_URL}/articles/${slug}/view`,
+  ARTICLE_FILTERS: `${API_BASE_URL}/articles/filters`,
 } as const
 
 // 导出基础URL

@@ -1,42 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Input, Button, Select, Tag, message, Card, Typography, Space, Modal } from 'antd'
-import { SaveOutlined, EyeOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { Button, Card, Input, message, Modal, Select, Space, Spin, Typography } from 'antd'
+import { ArrowLeftOutlined, EyeOutlined, SaveOutlined } from '@ant-design/icons'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { Article } from '../../types'
+import {
+  createArticle,
+  deleteArticle,
+  fetchArticleBySlug,
+  fetchArticleFilters,
+  updateArticle,
+} from '../../api/articles'
+import type { Article, ArticleCategory, ArticleSavePayload, ArticleTagOption } from '../../types'
 import styles from './Editor.module.css'
 
 const { Title } = Typography
 const { TextArea } = Input
-
-// localStorage 存储 key
-const ARTICLES_STORAGE_KEY = 'blog_articles'
-
-// 获取存储的文章
-const getStoredArticles = (): Article[] => {
-  const stored = localStorage.getItem(ARTICLES_STORAGE_KEY)
-  return stored ? JSON.parse(stored) : []
-}
-
-// 保存文章到 localStorage
-const saveArticles = (articles: Article[]) => {
-  localStorage.setItem(ARTICLES_STORAGE_KEY, JSON.stringify(articles))
-}
-
-// 生成唯一 ID
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2)
-
-// 生成 slug
-const generateSlug = (title: string) => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 export const Editor: React.FC = () => {
   const { i18n } = useTranslation()
@@ -44,53 +26,69 @@ export const Editor: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
   const isZh = i18n.language === 'zh'
 
+  const [articleId, setArticleId] = useState<string | undefined>()
   const [title, setTitle] = useState('')
   const [titleEn, setTitleEn] = useState('')
+  const [slugValue, setSlugValue] = useState('')
+  const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
-  const [category, setCategory] = useState('前端')
-  const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState('')
+  const [categoryId, setCategoryId] = useState<number | undefined>()
+  const [tagIds, setTagIds] = useState<number[]>([])
+  const [categories, setCategories] = useState<ArticleCategory[]>([])
+  const [tags, setTags] = useState<ArticleTagOption[]>([])
   const [previewMode, setPreviewMode] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const categories = ['前端', '后端', '运维', '生活随笔']
+  const isEditing = Boolean(slug)
 
-  // 加载文章数据
   useEffect(() => {
-    if (slug) {
-      const articles = getStoredArticles()
-      const article = articles.find((a) => a.slug === slug)
-      if (article) {
-        setTitle(article.title)
-        setTitleEn(article.titleEn || '')
-        setContent(article.content)
-        setCategory(article.category || '前端')
-        setTags(article.tags || [])
-        setIsEditing(true)
-      }
+    let mounted = true
+    setLoading(true)
+
+    Promise.all([
+      fetchArticleFilters(),
+      slug ? fetchArticleBySlug(slug) : Promise.resolve(null),
+    ])
+      .then(([filters, article]) => {
+        if (!mounted) return
+        setCategories(filters.categories)
+        setTags(filters.tags)
+        if (article) {
+          fillArticle(article)
+        } else if (filters.categories[0]) {
+          setCategoryId(filters.categories[0].id)
+        }
+      })
+      .catch((error) => {
+        message.error(error instanceof Error ? error.message : '加载编辑数据失败')
+      })
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
+
+    return () => {
+      mounted = false
     }
   }, [slug])
 
-  // 添加标签
-  const handleAddTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput])
-      setTagInput('')
-    }
+  const fillArticle = (article: Article) => {
+    setArticleId(article.id)
+    setTitle(article.title)
+    setTitleEn(article.titleEn || '')
+    setSlugValue(article.slug)
+    setExcerpt(article.excerpt || '')
+    setContent(article.content || '')
+    setCategoryId(article.categoryId)
+    setTagIds(article.tagIds || [])
   }
 
-  // 删除标签
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove))
-  }
-
-  // 预览 Markdown
   const renderMarkdown = (text: string) => {
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          code({ node, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '')
             const codeString = String(children).replace(/\n$/, '')
             return match ? (
@@ -110,14 +108,20 @@ export const Editor: React.FC = () => {
     )
   }
 
-  // 计算阅读时间
-  const calculateReadingTime = (text: string) => {
-    const words = text.replace(/[#*`\[\]\-]/g, '').length
-    return Math.ceil(words / 500)
-  }
+  const buildPayload = (): ArticleSavePayload => ({
+    title: title.trim(),
+    titleEn: titleEn.trim() || undefined,
+    slug: slugValue.trim() || undefined,
+    excerpt: excerpt.trim() || undefined,
+    content,
+    categoryId,
+    tagIds,
+    author: 'Evan',
+    status: 'PUBLISHED',
+    featured: false,
+  })
 
-  // 保存文章
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       message.error(isZh ? '请输入标题' : 'Please enter a title')
       return
@@ -127,54 +131,39 @@ export const Editor: React.FC = () => {
       return
     }
 
-    const articles = getStoredArticles()
-    const now = new Date().toISOString().split('T')[0] ?? ''
-    const articleSlug = slug || generateSlug(title)
-
-    const article: Article = {
-      id: isEditing ? articles.find((a) => a.slug === slug)?.id || generateId() : generateId(),
-      title,
-      titleEn: titleEn || title,
-      slug: articleSlug,
-      excerpt: content.slice(0, 150).replace(/[#*`\[\]\-]/g, '') + '...',
-      excerptEn: titleEn ? content.slice(0, 150).replace(/[#*`\[\]\-]/g, '') + '...' : '',
-      content,
-      category,
-      tags,
-      author: 'Evan',
-      publishDate: isEditing ? (articles.find((a) => a.slug === slug)?.publishDate || now) : now,
-      updateDate: now,
-      readingTime: calculateReadingTime(content),
-      views: isEditing ? (articles.find((a) => a.slug === slug)?.views || 0) : 0,
-      featured: false,
+    setSaving(true)
+    try {
+      const saved = articleId
+        ? await updateArticle(articleId, buildPayload())
+        : await createArticle(buildPayload())
+      message.success(isZh ? '保存成功' : 'Saved successfully')
+      navigate(`/blog/${saved.slug}`)
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '保存失败')
+    } finally {
+      setSaving(false)
     }
-
-    if (isEditing) {
-      const index = articles.findIndex((a) => a.slug === slug)
-      if (index !== -1) {
-        articles[index] = article
-      }
-    } else {
-      articles.unshift(article)
-    }
-
-    saveArticles(articles)
-    message.success(isZh ? '保存成功' : 'Saved successfully')
-    navigate('/blog')
   }
 
-  // 删除文章
   const handleDelete = () => {
+    if (!articleId) return
     Modal.confirm({
       title: isZh ? '确认删除' : 'Confirm delete',
       content: isZh ? '确定要删除这篇文章吗？' : 'Are you sure you want to delete this article?',
-      onOk: () => {
-        const articles = getStoredArticles().filter((a) => a.slug !== slug)
-        saveArticles(articles)
+      onOk: async () => {
+        await deleteArticle(articleId)
         message.success(isZh ? '删除成功' : 'Deleted successfully')
         navigate('/blog')
       },
     })
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.editor}>
+        <Spin />
+      </div>
+    )
   }
 
   return (
@@ -185,19 +174,19 @@ export const Editor: React.FC = () => {
             {isZh ? '返回' : 'Back'}
           </Button>
           <Title level={3} style={{ margin: 0 }}>
-            {isEditing ? (isZh ? '编辑文章' : 'Edit Article') : (isZh ? '写文章' : 'Write Article')}
+            {isEditing ? (isZh ? '编辑文章' : 'Edit Article') : isZh ? '写文章' : 'Write Article'}
           </Title>
         </div>
         <Space>
           <Button icon={<EyeOutlined />} onClick={() => setPreviewMode(!previewMode)}>
-            {previewMode ? (isZh ? '编辑' : 'Edit') : (isZh ? '预览' : 'Preview')}
+            {previewMode ? (isZh ? '编辑' : 'Edit') : isZh ? '预览' : 'Preview'}
           </Button>
           {isEditing && (
             <Button danger onClick={handleDelete}>
               {isZh ? '删除' : 'Delete'}
             </Button>
           )}
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
+          <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
             {isZh ? '保存' : 'Save'}
           </Button>
         </Space>
@@ -208,39 +197,47 @@ export const Editor: React.FC = () => {
           <Input
             placeholder={isZh ? '文章标题（中文）' : 'Article title (Chinese)'}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
             className={styles.titleInput}
           />
           <Input
             placeholder={isZh ? '文章标题（英文）' : 'Article title (English)'}
             value={titleEn}
-            onChange={(e) => setTitleEn(e.target.value)}
+            onChange={(event) => setTitleEn(event.target.value)}
             className={styles.titleInput}
           />
         </div>
 
         <div className={styles.row}>
+          <Input
+            placeholder={isZh ? '文章链接 slug，可留空自动生成' : 'Article slug, optional'}
+            value={slugValue}
+            onChange={(event) => setSlugValue(event.target.value)}
+            className={styles.titleInput}
+          />
           <Select
-            value={category}
-            onChange={setCategory}
-            options={categories.map((cat) => ({ value: cat, label: cat }))}
+            value={categoryId}
+            onChange={setCategoryId}
+            placeholder={isZh ? '选择分类' : 'Select category'}
+            options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
             className={styles.categorySelect}
           />
-          <div className={styles.tagsContainer}>
-            {tags.map((tag) => (
-              <Tag key={tag} closable onClose={() => handleRemoveTag(tag)}>
-                {tag}
-              </Tag>
-            ))}
-            <Input
-              placeholder={isZh ? '添加标签' : 'Add tag'}
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onPressEnter={handleAddTag}
-              className={styles.tagInput}
-            />
-          </div>
         </div>
+
+        <Select
+          mode="multiple"
+          value={tagIds}
+          onChange={setTagIds}
+          placeholder={isZh ? '选择标签' : 'Select tags'}
+          options={tags.map((tag) => ({ value: tag.id, label: tag.name }))}
+        />
+
+        <TextArea
+          placeholder={isZh ? '文章摘要，可留空自动生成' : 'Excerpt, optional'}
+          value={excerpt}
+          onChange={(event) => setExcerpt(event.target.value)}
+          autoSize={{ minRows: 2, maxRows: 4 }}
+        />
 
         <div className={styles.contentArea}>
           {previewMode ? (
@@ -251,7 +248,7 @@ export const Editor: React.FC = () => {
             <TextArea
               placeholder={isZh ? '在这里使用 Markdown 编写文章...' : 'Write your article here using Markdown...'}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(event) => setContent(event.target.value)}
               className={styles.contentInput}
             />
           )}
