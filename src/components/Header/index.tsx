@@ -48,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
   const menuItems = [
     { key: '/', label: t('nav.home') },
     { key: '/blog', label: t('nav.blog') },
+    { key: '/album', label: t('nav.album') },
     { key: '/about', label: t('nav.about') },
   ]
 

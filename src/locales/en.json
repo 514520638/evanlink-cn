@@ -2,6 +2,7 @@
   "nav": {
     "home": "Home",
     "blog": "Blog",
+    "album": "Album",
     "about": "About",
     "editor": "Write"
   },
