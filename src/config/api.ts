@@ -18,6 +18,9 @@ export const API_ENDPOINTS = {
   ARTICLE_VIEW: (slug: string) => `${API_BASE_URL}/articles/${slug}/view`,
   ARTICLE_FILTERS: `${API_BASE_URL}/articles/filters`,
 
+  // 相册
+  ALBUM_PHOTOS: `${API_BASE_URL}/album/photos`,
+
   // 管理后台
   ADMIN_LOGIN: `${API_BASE_URL}/admin/login`,
   ADMIN_PROFILE: `${API_BASE_URL}/admin/profile`,

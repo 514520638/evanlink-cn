@@ -7,6 +7,7 @@ import { ArticlePage } from '../pages/Article'
 import { About } from '../pages/About'
 import { Editor } from '../pages/Editor'
 import { AdminProfile } from '../pages/AdminProfile'
+import { Album } from '../pages/Album'
 
 export const AppRouter: React.FC = () => {
   return (
@@ -19,6 +20,7 @@ export const AppRouter: React.FC = () => {
         <Route path="editor/:slug" element={<Editor />} />
         <Route path="about" element={<About />} />
         <Route path="admin" element={<AdminProfile />} />
+        <Route path="album" element={<Album />} />
       </Route>
     </Routes>
   )

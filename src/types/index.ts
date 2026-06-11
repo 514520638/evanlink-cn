@@ -79,6 +79,18 @@ export interface ArticleSavePayload {
   coverImage?: string;
 }
 
+export interface AlbumPhoto {
+  id: number;
+  url: string;
+  originalName?: string;
+  contentType?: string;
+  fileSize?: number;
+  title?: string;
+  description?: string;
+  sortOrder?: number;
+  createdAt: string;
+}
+
 // 项目类型
 export interface Project {
   id?: string;
