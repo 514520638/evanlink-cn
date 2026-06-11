@@ -25,6 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
@@ -34,6 +35,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .collapseBtn {
@@ -50,6 +53,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 0 0 auto;
   text-decoration: none;
 }
 
@@ -60,6 +64,8 @@
 }
 
 .menu {
+  flex: 0 0 auto;
+  min-width: max-content;
   border: none !important;
   background: transparent !important;
 }
@@ -96,6 +102,7 @@
 .rightSection {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .rightSection :global(.ant-btn-text) {

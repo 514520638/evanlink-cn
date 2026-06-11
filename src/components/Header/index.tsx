@@ -112,6 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           <Menu
             mode="horizontal"
             selectedKeys={[currentKey]}
+            disabledOverflow
             items={menuItems.map((item) => ({
               key: item.key,
               label: <Link to={item.key}>{item.label}</Link>,
