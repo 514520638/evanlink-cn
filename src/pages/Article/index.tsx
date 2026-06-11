@@ -16,7 +16,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { fetchArticleBySlug, increaseArticleView } from '../../api/articles'
 import type { Article as ArticleType } from '../../types'
-import { getAdminToken } from '../../utils/adminAuth'
+import { verifyAdminSession } from '../../utils/adminAuth'
 import styles from './Article.module.css'
 
 const { Title } = Typography
@@ -70,10 +70,10 @@ export const ArticlePage: React.FC = () => {
     }
   }
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (!article) return
     const editorPath = `/editor/${article.slug}`
-    if (getAdminToken()) {
+    if (await verifyAdminSession()) {
       navigate(editorPath)
       return
     }

@@ -70,6 +70,16 @@
   gap: 16px;
 }
 
+.resumeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.shareLink {
+  word-break: break-all;
+}
+
 .contactItem {
   display: flex;
   align-items: center;

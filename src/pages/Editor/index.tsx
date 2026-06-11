@@ -15,7 +15,7 @@ import {
   updateArticle,
 } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleSavePayload, ArticleTagOption } from '../../types'
-import { getAdminToken } from '../../utils/adminAuth'
+import { verifyAdminSession } from '../../utils/adminAuth'
 import styles from './Editor.module.css'
 
 const { Title } = Typography
@@ -44,20 +44,22 @@ export const Editor: React.FC = () => {
   const isEditing = Boolean(slug)
 
   useEffect(() => {
-    if (!getAdminToken()) {
-      const targetPath = slug ? `/editor/${slug}` : '/editor'
-      message.warning(isZh ? '请先登录后再管理文章' : 'Please log in before managing articles')
-      navigate(`/admin?redirect=${encodeURIComponent(targetPath)}`, { replace: true })
-      return
-    }
-
     let mounted = true
     setLoading(true)
 
-    Promise.all([
-      fetchArticleFilters(),
-      slug ? fetchArticleBySlug(slug) : Promise.resolve(null),
-    ])
+    verifyAdminSession()
+      .then((authed) => {
+        if (!authed) {
+          const targetPath = slug ? `/editor/${slug}` : '/editor'
+          message.warning(isZh ? '请先登录后再管理文章' : 'Please log in before managing articles')
+          navigate(`/admin?redirect=${encodeURIComponent(targetPath)}`, { replace: true })
+          return Promise.reject(new Error('UNAUTHORIZED_REDIRECT'))
+        }
+        return Promise.all([
+          fetchArticleFilters(),
+          slug ? fetchArticleBySlug(slug) : Promise.resolve(null),
+        ])
+      })
       .then(([filters, article]) => {
         if (!mounted) return
         setCategories(filters.categories)
@@ -69,6 +71,9 @@ export const Editor: React.FC = () => {
         }
       })
       .catch((error) => {
+        if (error instanceof Error && error.message === 'UNAUTHORIZED_REDIRECT') {
+          return
+        }
         message.error(error instanceof Error ? error.message : '加载编辑数据失败')
       })
       .finally(() => {

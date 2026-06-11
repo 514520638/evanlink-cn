@@ -6,6 +6,7 @@ import {
   InboxOutlined,
   LoginOutlined,
   PlusOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons'
 import {
   deleteAlbumPhoto,
@@ -19,6 +20,7 @@ import styles from './Album.module.css'
 
 const { Dragger } = Upload
 const { Title, Paragraph } = Typography
+const ACCEPTED_MEDIA = 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime'
 
 interface UploadFormValues {
   title?: string
@@ -112,25 +114,27 @@ export const Album: React.FC = () => {
   }
 
   const handleUpload = async () => {
-    const file = fileList[0]?.originFileObj
-    if (!file) {
-      message.warning('请选择一张照片')
+    const files = fileList
+      .map((item) => item.originFileObj)
+      .filter((file): file is NonNullable<typeof file> => Boolean(file))
+    if (!files.length) {
+      message.warning('请选择照片或视频')
       return
     }
 
     try {
       const values = await form.validateFields()
       setUploading(true)
-      const photo = await uploadAlbumPhoto({
-        file,
+      const uploadedItems = await uploadAlbumPhoto({
+        files,
         title: values.title,
         description: values.description,
       })
-      setPhotos((prev) => [photo, ...prev])
+      setPhotos((prev) => [...uploadedItems, ...prev])
       setUploadOpen(false)
       setFileList([])
       form.resetFields()
-      message.success('照片已上传')
+      message.success(`已上传 ${uploadedItems.length} 个媒体文件`)
     } catch (error) {
       if (error instanceof Error) {
         message.error(error.message)
@@ -149,7 +153,7 @@ export const Album: React.FC = () => {
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id))
       message.success('照片已删除')
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '删除照片失败')
+      message.error(error instanceof Error ? error.message : '删除失败')
     }
   }
 
@@ -192,7 +196,7 @@ export const Album: React.FC = () => {
             个人相册
           </Title>
           <Paragraph className={styles.subtitle}>
-            记录生活、旅途和项目之外的片段。访客可以浏览照片，登录后可以上传和删除相册内容。
+            记录生活、旅途和项目之外的片段。访客可以浏览照片和视频，登录后可以批量上传和删除相册内容。
           </Paragraph>
         </div>
         <div className={styles.actions}>
@@ -203,7 +207,7 @@ export const Album: React.FC = () => {
               loading={authChecking}
               onClick={handleOpenUpload}
             >
-              上传照片
+              上传媒体
             </Button>
           ) : (
             <>
@@ -225,8 +229,8 @@ export const Album: React.FC = () => {
                   <div className={styles.imageWrap}>
                     {isAuthed && (
                       <Popconfirm
-                        title="删除照片"
-                        description="删除后前台将不再展示这张照片。"
+                        title={photo.mediaType === 'video' ? '删除视频' : '删除照片'}
+                        description="删除后前台将不再展示这个媒体文件。"
                         okText="删除"
                         cancelText="取消"
                         onConfirm={() => handleDelete(photo)}
@@ -239,7 +243,21 @@ export const Album: React.FC = () => {
                         />
                       </Popconfirm>
                     )}
-                    <Image src={photo.url} alt={photo.title || photo.originalName || '相册照片'} />
+                    {photo.mediaType === 'video' ? (
+                      <div className={styles.videoFrame}>
+                        <video
+                          src={photo.url}
+                          controls
+                          preload="metadata"
+                          className={styles.video}
+                        />
+                        <span className={styles.videoBadge}>
+                          <PlayCircleOutlined /> 视频
+                        </span>
+                      </div>
+                    ) : (
+                      <Image src={photo.url} alt={photo.title || photo.originalName || '相册照片'} />
+                    )}
                   </div>
                   <div className={styles.photoMeta}>
                     <h3 className={styles.photoTitle}>{photo.title || photo.originalName || '未命名照片'}</h3>
@@ -252,7 +270,7 @@ export const Album: React.FC = () => {
             </div>
           </Image.PreviewGroup>
         ) : (
-          <Empty description="相册还没有照片" className={styles.empty} />
+          <Empty description="相册还没有照片或视频" className={styles.empty} />
         )}
       </Spin>
 
@@ -286,7 +304,7 @@ export const Album: React.FC = () => {
       </Modal>
 
       <Modal
-        title="上传照片"
+        title="上传照片或视频"
         open={uploadOpen}
         okText="上传"
         cancelText="取消"
@@ -298,22 +316,25 @@ export const Album: React.FC = () => {
         <Form form={form} layout="vertical">
           <div className={styles.uploadArea}>
             <Dragger
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              maxCount={1}
+              accept={ACCEPTED_MEDIA}
+              multiple
               fileList={fileList}
               beforeUpload={() => false}
-              onChange={({ fileList: nextFileList }) => setFileList(nextFileList.slice(-1))}
-              onRemove={() => setFileList([])}
+              onChange={({ fileList: nextFileList }) => setFileList(nextFileList)}
+              onRemove={(file) => setFileList((prev) => prev.filter((item) => item.uid !== file.uid))}
             >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">点击或拖拽照片到这里</p>
-              <p className="ant-upload-hint">支持 JPG、PNG、WebP、GIF，单张最大 20MB</p>
+              <p className="ant-upload-text">点击或拖拽照片、视频到这里</p>
+              <p className="ant-upload-hint">支持 JPG、PNG、WebP、GIF 图片和 MP4、WebM、MOV 视频，可一次选择多个文件</p>
             </Dragger>
           </div>
+          {fileList.length > 0 && (
+            <div className={styles.uploadCount}>已选择 {fileList.length} 个文件</div>
+          )}
           <Form.Item name="title" label="标题">
-            <Input placeholder="给这张照片起个名字" maxLength={80} />
+            <Input placeholder="给这批媒体起个名字，可留空" maxLength={80} />
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea placeholder="记录地点、时间或一句备注" rows={3} maxLength={200} showCount />

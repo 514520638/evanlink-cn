@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArticleCard } from '../../components/ArticleCard'
 import { fetchArticleFilters, fetchArticles } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleTagOption } from '../../types'
-import { getAdminToken } from '../../utils/adminAuth'
+import { verifyAdminSession } from '../../utils/adminAuth'
 import styles from './Blog.module.css'
 
 const { Title, Paragraph } = Typography
@@ -76,8 +76,8 @@ export const Blog: React.FC = () => {
     ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
   ]
 
-  const handleWriteArticle = () => {
-    if (getAdminToken()) {
+  const handleWriteArticle = async () => {
+    if (await verifyAdminSession()) {
       navigate('/editor')
       return
     }

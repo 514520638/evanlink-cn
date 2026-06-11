@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Button,
@@ -18,7 +18,7 @@ import { API_ENDPOINTS } from '../../config/api'
 import { useAppDispatch } from '../../store/hooks'
 import { fetchUserInfo } from '../../store/slices/userInfoSlice'
 import type { UserInfo } from '../../types/user'
-import { ADMIN_TOKEN_KEY, clearAdminToken, setAdminToken } from '../../utils/adminAuth'
+import { fetchWithAdminCookie, loginAdmin, logoutAdmin } from '../../utils/adminAuth'
 import styles from './AdminProfile.module.css'
 
 const { Title, Paragraph } = Typography
@@ -47,19 +47,11 @@ export const AdminProfile: React.FC = () => {
   const [searchParams] = useSearchParams()
   const [loginForm] = Form.useForm()
   const [profileForm] = Form.useForm<ProfileFormValues>()
-  const [token, setToken] = useState(() => localStorage.getItem(ADMIN_TOKEN_KEY) || '')
+  const [authed, setAuthed] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const redirectPath = searchParams.get('redirect')
-
-  const authed = Boolean(token)
-  const headers = useMemo(
-    () => ({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    }),
-    [token]
-  )
 
   const fillProfile = (data: AdminProfileResponse) => {
     profileForm.setFieldsValue({
@@ -68,55 +60,48 @@ export const AdminProfile: React.FC = () => {
     })
   }
 
-  const clearToken = () => {
-    clearAdminToken()
-    setToken('')
+  const clearSession = async () => {
+    await logoutAdmin()
+    setAuthed(false)
   }
 
   const loadProfile = async () => {
-    if (!token) return
     setLoading(true)
     try {
-      const response = await fetch(API_ENDPOINTS.ADMIN_PROFILE, { headers })
+      const response = await fetchWithAdminCookie(API_ENDPOINTS.ADMIN_PROFILE)
       if (response.status === 401) {
-        clearToken()
-        message.warning('登录已失效，请重新登录')
+        setAuthed(false)
         return
       }
       if (!response.ok) {
         throw new Error(`加载失败: ${response.status}`)
       }
+      setAuthed(true)
       fillProfile(await response.json())
     } catch (error) {
       message.error(error instanceof Error ? error.message : '加载资料失败')
     } finally {
       setLoading(false)
+      setCheckingAuth(false)
     }
   }
 
   useEffect(() => {
     loadProfile()
-  }, [token])
+  }, [])
 
   const handleLogin = async () => {
     try {
       const values = await loginForm.validateFields()
       setLoading(true)
-      const response = await fetch(API_ENDPOINTS.ADMIN_LOGIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || '登录失败')
-      }
-      setAdminToken(data.token)
-      setToken(data.token)
+      await loginAdmin(values)
+      setAuthed(true)
       message.success('登录成功')
       if (redirectPath) {
         navigate(redirectPath, { replace: true })
+        return
       }
+      await loadProfile()
     } catch (error) {
       message.error(error instanceof Error ? error.message : '登录失败')
     } finally {
@@ -129,9 +114,9 @@ export const AdminProfile: React.FC = () => {
       const values = await profileForm.validateFields()
       setSaving(true)
       const { skills, ...userInfo } = values
-      const response = await fetch(API_ENDPOINTS.ADMIN_PROFILE, {
+      const response = await fetchWithAdminCookie(API_ENDPOINTS.ADMIN_PROFILE, {
         method: 'PUT',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userInfo,
           skills: (skills || []).map((skill) => ({
@@ -145,7 +130,7 @@ export const AdminProfile: React.FC = () => {
       })
       const data = await response.json()
       if (response.status === 401) {
-        clearToken()
+        setAuthed(false)
         throw new Error(data.message || '登录已失效，请重新登录')
       }
       if (!response.ok) {
@@ -159,6 +144,14 @@ export const AdminProfile: React.FC = () => {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className={styles.admin}>
+        <Spin />
+      </div>
+    )
   }
 
   if (!authed) {
@@ -201,7 +194,7 @@ export const AdminProfile: React.FC = () => {
           </Paragraph>
         </div>
         <Space>
-          <Button onClick={clearToken}>退出登录</Button>
+          <Button onClick={clearSession}>退出登录</Button>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
             保存
           </Button>

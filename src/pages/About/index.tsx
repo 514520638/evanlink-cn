@@ -12,6 +12,7 @@ import {
   Form,
   Input,
   message,
+  Space,
 } from 'antd'
 import {
   EyeOutlined,
@@ -22,11 +23,14 @@ import {
   LockOutlined,
   PhoneOutlined,
   UserOutlined,
+  ShareAltOutlined,
+  LoginOutlined,
 } from '@ant-design/icons'
 import { API_ENDPOINTS } from '../../config/api'
 import styles from './About.module.css'
 import { useAppSelector } from '../../store/hooks'
 import { useIdleImagePreload } from '../../hooks/useIdleImagePreload'
+import { loginAdmin } from '../../utils/adminAuth'
 
 const { Title, Paragraph } = Typography
 
@@ -47,8 +51,14 @@ export const About: React.FC = () => {
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
   const [wechatModalOpen, setWechatModalOpen] = useState(false)
   const [resumeModalOpen, setResumeModalOpen] = useState(false)
+  const [adminLoginModalOpen, setAdminLoginModalOpen] = useState(false)
+  const [shareLinkModalOpen, setShareLinkModalOpen] = useState(false)
+  const [shareLink, setShareLink] = useState('')
   const [resumeForm] = Form.useForm()
+  const [adminLoginForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false)
   const [skillsData, setSkillsData] = useState<SkillCategory[]>([])
 
   const isZh = i18n.language === 'zh'
@@ -73,6 +83,72 @@ export const About: React.FC = () => {
 
     fetchSkills()
   }, [])
+
+  const getResumeShareToken = () => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('resumeToken') || params.get('resume_token') || ''
+  }
+
+  const openResumeWithShareToken = async (token: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch(API_ENDPOINTS.RESUME_SHARE_TOKEN_CHECK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await response.json()
+      if (data.success && data.resumeUrl) {
+        window.open(data.resumeUrl, '_blank')
+        return true
+      }
+      message.error(data.message || (isZh ? '分享链接已失效' : 'Share link expired'))
+      return false
+    } catch (error) {
+      console.error('Share token verification failed:', error)
+      message.error(isZh ? '分享链接校验失败' : 'Share link verification failed')
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openResumeWithAdminSession = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(API_ENDPOINTS.RESUME_ADMIN_OPEN, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.status === 401) {
+        return false
+      }
+
+      const data = await response.json()
+      if (data.success && data.resumeUrl) {
+        window.open(data.resumeUrl, '_blank')
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Admin resume open failed:', error)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOpenResume = async () => {
+    const openedByAdmin = await openResumeWithAdminSession()
+    if (openedByAdmin) return
+
+    const token = getResumeShareToken()
+    if (token) {
+      const opened = await openResumeWithShareToken(token)
+      if (opened) return
+    }
+    setResumeModalOpen(true)
+  }
 
   const handleResumeVerify = async () => {
     try {
@@ -109,6 +185,65 @@ export const About: React.FC = () => {
       console.error('Request failed:', error)
       message.error(isZh ? '请求失败，请稍后重试' : 'Request failed, please try again')
       setLoading(false)
+    }
+  }
+
+  const createShareLink = async () => {
+    setShareLoading(true)
+    try {
+      const response = await fetch(API_ENDPOINTS.RESUME_SHARE_TOKEN, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await response.json()
+      if (response.status === 401) {
+        setAdminLoginModalOpen(true)
+        message.warning(data.message || (isZh ? '请先登录后再授权分享' : 'Please login first'))
+        return
+      }
+      if (!response.ok || !data.success || !data.token) {
+        throw new Error(data.message || (isZh ? '授权分享失败' : 'Failed to authorize sharing'))
+      }
+
+      const url = new URL(window.location.href)
+      url.pathname = '/about'
+      url.search = ''
+      url.hash = ''
+      url.searchParams.set('resumeToken', data.token)
+      const nextShareLink = url.toString()
+      setShareLink(nextShareLink)
+
+      try {
+        await navigator.clipboard.writeText(nextShareLink)
+        message.success(isZh ? '授权链接已复制，7天内有效' : 'Share link copied. Valid for 7 days')
+      } catch {
+        setShareLinkModalOpen(true)
+        message.info(isZh ? '请手动复制授权链接' : 'Please copy the share link manually')
+      }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : isZh ? '授权分享失败' : 'Failed to authorize sharing')
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  const handleShareClick = async () => {
+    await createShareLink()
+  }
+
+  const handleAdminLogin = async () => {
+    try {
+      const values = await adminLoginForm.validateFields()
+      setAdminLoginLoading(true)
+      await loginAdmin(values)
+      setAdminLoginModalOpen(false)
+      adminLoginForm.resetFields()
+      message.success(isZh ? '登录成功' : 'Login successful')
+      await createShareLink()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : isZh ? '登录失败' : 'Login failed')
+    } finally {
+      setAdminLoginLoading(false)
     }
   }
 
@@ -163,15 +298,19 @@ export const About: React.FC = () => {
                 </a>
               )}
 
-              {
+              <div className={styles.resumeActions}>
                 <Button
                   type="primary"
                   icon={<EyeOutlined />}
-                  onClick={() => setResumeModalOpen(true)}
+                  loading={loading}
+                  onClick={handleOpenResume}
                 >
                   {t('about.resume_view')}
                 </Button>
-              }
+                <Button icon={<ShareAltOutlined />} loading={shareLoading} onClick={handleShareClick}>
+                  {isZh ? '授权分享' : 'Authorize Share'}
+                </Button>
+              </div>
             </div>
           </Card>
         </Col>
@@ -228,6 +367,79 @@ export const About: React.FC = () => {
             </p>
           )}
         </div>
+      </Modal>
+
+      {/* 授权分享登录弹窗 */}
+      <Modal
+        title={isZh ? '登录后授权分享' : 'Login to Authorize Sharing'}
+        open={adminLoginModalOpen}
+        onCancel={() => {
+          setAdminLoginModalOpen(false)
+          adminLoginForm.resetFields()
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setAdminLoginModalOpen(false)
+              adminLoginForm.resetFields()
+            }}
+          >
+            {isZh ? '取消' : 'Cancel'}
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            icon={<LoginOutlined />}
+            loading={adminLoginLoading}
+            onClick={handleAdminLogin}
+          >
+            {isZh ? '登录并生成' : 'Login and Generate'}
+          </Button>,
+        ]}
+        centered
+      >
+        <div style={{ padding: '20px 0' }}>
+          <Form form={adminLoginForm} layout="vertical" onFinish={handleAdminLogin}>
+            <Form.Item
+              label={isZh ? '账号' : 'Username'}
+              name="username"
+              initialValue="14776866846"
+              rules={[{ required: true, message: isZh ? '请输入账号' : 'Please enter username' }]}
+            >
+              <Input autoComplete="username" />
+            </Form.Item>
+            <Form.Item
+              label={isZh ? '密码' : 'Password'}
+              name="password"
+              rules={[{ required: true, message: isZh ? '请输入密码' : 'Please enter password' }]}
+            >
+              <Input.Password autoComplete="current-password" />
+            </Form.Item>
+          </Form>
+        </div>
+      </Modal>
+
+      {/* 授权链接手动复制弹窗 */}
+      <Modal
+        title={isZh ? '授权分享链接' : 'Resume Share Link'}
+        open={shareLinkModalOpen}
+        onCancel={() => setShareLinkModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setShareLinkModalOpen(false)}>
+            {isZh ? '关闭' : 'Close'}
+          </Button>,
+        ]}
+        centered
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Paragraph>
+            {isZh
+              ? '该链接7天内有效，访问者可直接打开简历。'
+              : 'This link is valid for 7 days and allows direct resume access.'}
+          </Paragraph>
+          <Input.TextArea className={styles.shareLink} value={shareLink} autoSize readOnly />
+        </Space>
       </Modal>
 
       {/* 简历验证弹窗 */}

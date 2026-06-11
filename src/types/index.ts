@@ -84,6 +84,7 @@ export interface AlbumPhoto {
   url: string;
   originalName?: string;
   contentType?: string;
+  mediaType?: 'image' | 'video';
   fileSize?: number;
   title?: string;
   description?: string;

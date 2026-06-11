@@ -8,6 +8,9 @@ export const API_ENDPOINTS = {
   
   // 简历验证
   RESUME_VERIFY: `${API_BASE_URL}/resume/verify`,
+  RESUME_ADMIN_OPEN: `${API_BASE_URL}/resume/verify/admin-open`,
+  RESUME_SHARE_TOKEN: `${API_BASE_URL}/resume/verify/share-token`,
+  RESUME_SHARE_TOKEN_CHECK: `${API_BASE_URL}/resume/verify/share-token/check`,
   
   // 技能数据
   SKILLS: `${API_BASE_URL}/skills`,
@@ -23,6 +26,7 @@ export const API_ENDPOINTS = {
 
   // 管理后台
   ADMIN_LOGIN: `${API_BASE_URL}/admin/login`,
+  ADMIN_LOGOUT: `${API_BASE_URL}/admin/logout`,
   ADMIN_PROFILE: `${API_BASE_URL}/admin/profile`,
 } as const
 
