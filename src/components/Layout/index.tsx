@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from '../Header/index.tsx';
 import { Footer } from '../Footer/index.tsx';
 import styles from './Layout.module.css';
+import AgentChat from '../AgentChat';
 
 const { Content } = AntLayout;
 
@@ -23,6 +24,7 @@ export const Layout: React.FC = () => {
         </div>
       </Content>
       <Footer />
+      <AgentChat />
     </AntLayout>
   );
 };
