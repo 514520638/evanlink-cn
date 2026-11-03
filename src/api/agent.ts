@@ -2,6 +2,17 @@
 const BASE = '/agent-api'
 
 export type AgentRole = 'guest' | 'owner'
+export interface ProfileInput {
+  content: string
+  category: string
+  visibility: 'public' | 'private'
+  status: 'draft' | 'published' | 'archived'
+}
+export interface ProfileEntry extends ProfileInput {
+  id: string
+  source: 'manual' | 'conversation' | 'import'
+  updated_at: string
+}
 export interface MemoryAction {
   name: 'save_personal_memory' | 'update_personal_memory'
   args: { content: string; entry_id?: string; category?: string; visibility?: 'public' | 'private'; status?: 'draft' | 'published' | 'archived' }
@@ -10,13 +21,15 @@ export interface MemoryAction {
 export interface PendingApproval {
   approval_id: string
   user_message?: string
+  draft_decisions?: ApprovalDecision[]
   action_requests: MemoryAction[]
   review_configs: { action_name: string; allowed_decisions: string[] }[]
 }
 export type AgentEvent =
+  | { type: 'search_status'; message: string }
   | { type: 'message_start' }
   | { type: 'delta'; text: string }
-  | { type: 'done'; answer: string }
+  | { type: 'done'; answer: string; writes?: MemoryWriteReceipt[] }
   | ({ type: 'approval_required' } & PendingApproval)
   | { type: 'error'; code: string; message: string }
 
@@ -24,10 +37,18 @@ export interface ApprovalDecision {
   type: 'approve' | 'edit' | 'reject'
   changes?: { content?: string; category?: string; visibility?: 'public' | 'private'; status?: 'draft' | 'published' | 'archived' }
 }
+export interface MemoryWriteReceipt {
+  id: string
+  status: 'saved' | 'updated'
+  visibility: 'public' | 'private'
+  publication_status: 'draft' | 'published' | 'archived'
+}
 export interface Conversation {
   conversation_id: string
   messages: { role: 'user' | 'assistant'; content: string }[]
   pending: PendingApproval | null
+  running: boolean
+  operation: { id: string; status: 'running' | 'completed' | 'interrupted' | 'awaiting_review' | 'cancelled'; writes: MemoryWriteReceipt[] } | null
 }
 
 export class AgentApiError extends Error {
@@ -43,6 +64,9 @@ async function request(path: string, method = 'GET', body?: unknown, signal?: Ab
     headers: { 'X-Agent-Request': '1', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+  if (response.headers.get('content-type')?.includes('text/html')) {
+    throw new AgentApiError(502, '代理返回了网页而非 Agent 接口，请检查 /agent-api 路径转发。')
+  }
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
     throw new AgentApiError(response.status, typeof payload?.detail === 'string' ? payload.detail : `Agent 请求失败 (${response.status})`)
@@ -88,6 +112,9 @@ async function stream(path: string, body: unknown, onEvent: (event: AgentEvent) 
 }
 
 export const agentApi = {
+  profiles: async (offset = 0): Promise<{ items: ProfileEntry[]; has_more: boolean }> => (await request(`/profiles?offset=${offset}&limit=20`)).json(),
+  saveProfile: async (data: ProfileInput, id?: string): Promise<ProfileEntry> => (await request(id ? `/profiles/${encodeURIComponent(id)}` : '/profiles', id ? 'PATCH' : 'POST', data)).json(),
+  deleteProfile: async (id: string) => { await request(`/profiles/${encodeURIComponent(id)}`, 'DELETE') },
   me: async (): Promise<{ role: AgentRole; user_id: string | null }> => (await request('/auth/me')).json(),
   guest: async (): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/guest', 'POST')).json(),
   login: async (password: string): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/login', 'POST', { password })).json(),
@@ -100,6 +127,9 @@ export const agentApi = {
     stream(`/conversations/${encodeURIComponent(id)}/messages`, { message }, onEvent, signal),
   review: (id: string, approvalId: string, decisions: ApprovalDecision[], onEvent: (event: AgentEvent) => void, signal?: AbortSignal) =>
     stream(`/conversations/${encodeURIComponent(id)}/approvals/${encodeURIComponent(approvalId)}`, { decisions }, onEvent, signal),
+  saveReviewDraft: async (id: string, approvalId: string, decisions: ApprovalDecision[]) => {
+    await request(`/conversations/${encodeURIComponent(id)}/approvals/${encodeURIComponent(approvalId)}/draft`, 'PATCH', { decisions })
+  },
   cancelReview: async (id: string, approvalId: string) => {
     await request(`/conversations/${encodeURIComponent(id)}/approvals/${encodeURIComponent(approvalId)}`, 'DELETE')
   },

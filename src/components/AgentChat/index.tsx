@@ -1,25 +1,31 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
 import { CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { agentApi, AgentApiError, type AgentEvent, type AgentRole, type ApprovalDecision, type PendingApproval } from '../../api/agent'
+import { agentApi, AgentApiError, type AgentEvent, type AgentRole, type PendingApproval } from '../../api/agent'
 import { useLanguage } from '../../hooks/useLanguage'
 import styles from './AgentChat.module.css'
+import { combined, draftsFromPending, toDecisions, type Draft } from './approval'
+import KnowledgePanel from './KnowledgePanel'
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string }
-type Draft = { content: string; visibility: string; status: string; reject: boolean; extras: Record<string, string> }
 const STORAGE = 'evan-agent-conversation'
 const id = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 const savedId = () => { try { return sessionStorage.getItem(STORAGE) } catch { return null } }
 const rememberId = (value: string) => { try { sessionStorage.setItem(STORAGE, value) } catch { /* 无存储权限仍可聊天 */ } }
-const combined = (draft: Draft) => [draft.content, ...Object.entries(draft.extras).filter(([, value]) => value.trim()).map(([label, value]) => `${label}：${value.trim()}`)].join('\n')
 
 /** 全站聊天抽屉：状态属于组件，凭据仅由服务端 HttpOnly Cookie 管理。 */
 export default function AgentChat() {
   const { language } = useLanguage()
   const tr = (zh: string, en: string) => language === 'zh' ? zh : en
   const [open, setOpen] = useState(false)
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
+  const knowledgeExpired = useCallback(() => {
+    setKnowledgeOpen(false); setRole('guest'); setReady(false)
+    setMessages([]); setPending(null); setDrafts([])
+    setError('本人登录已失效，请重新登录后管理资料。')
+  }, [])
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
@@ -35,6 +41,8 @@ export default function AgentChat() {
   const [pending, setPending] = useState<PendingApproval | null>(null)
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [confirmed, setConfirmed] = useState(false)
+  const [draftDirty, setDraftDirty] = useState(false)
+  const [serverRunning, setServerRunning] = useState(false)
   const abort = useRef<AbortController | null>(null)
   const alive = useRef(true)
   const scroll = useRef<HTMLDivElement>(null)
@@ -48,20 +56,36 @@ export default function AgentChat() {
     if (open && follow.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight
   }, [messages, pending, open])
 
+  useEffect(() => {
+    if (!draftDirty) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [draftDirty])
+  useEffect(() => {
+    if (!open || !serverRunning || busy || !conversationId) return
+    let active = true
+    let count = 0
+    const timer = window.setInterval(() => {
+      if (++count > 30) { window.clearInterval(timer); return }
+      void agentApi.conversation(conversationId).then(result => {
+        if (!active) return
+        if (!result.running) { window.clearInterval(timer); void loadConversation(conversationId).catch(fail) }
+      }).catch(reason => { if (active) { window.clearInterval(timer); fail(reason) } })
+    }, 1500)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [open, serverRunning, busy, conversationId])
+
   function setReview(value: PendingApproval | null) {
     setPending(value)
     setConfirmed(false)
-    setDrafts(value?.action_requests.map(action => ({
-      content: action.args.content,
-      visibility: action.args.visibility ?? (action.name === 'update_personal_memory' ? 'keep' : 'public'),
-      status: action.args.status ?? (action.name === 'update_personal_memory' ? 'keep' : 'published'),
-      reject: false, extras: {},
-    })) ?? [])
+    setDrafts(draftsFromPending(value))
+    setDraftDirty(false)
   }
   function fail(reason: unknown) {
     if (!alive.current) return
     if (reason instanceof AgentApiError && (reason.status === 401 || reason.status === 403)) {
-      setReady(false); setMessages([]); setReview(null); setConversations([]); setConversationId(''); setRole('guest')
+      setServerRunning(false); setReady(false); setMessages([]); setReview(null); setConversations([]); setConversationId(''); setRole('guest')
     }
     setError(reason instanceof Error ? reason.message : tr('请求失败，请重试。', 'Request failed. Please retry.'))
   }
@@ -73,6 +97,14 @@ export default function AgentChat() {
     if (result.pending?.user_message) restored.push({ id: `pending-${result.pending.approval_id}`, role: 'user', content: result.pending.user_message })
     setMessages(restored)
     setReview(result.pending)
+    setServerRunning(result.running)
+    if (result.operation?.writes.length) {
+      setNotice(tr('最近一次执行的数据库回执：', 'Latest database receipt: ') + result.operation.writes.map(item => `${item.id} · ${item.visibility}/${item.publication_status}`).join('；'))
+    } else if (result.running) {
+      setNotice(tr('服务端仍在处理上一轮，正在核对状态，请勿重复提交。', 'The previous request is still running. Checking its status; do not resubmit.'))
+    } else if (result.operation?.status === 'interrupted') {
+      setNotice(tr('上一轮已中断，未收到写入回执；如涉及写入，请核对个人资料后再重试。', 'The previous request was interrupted. Check your records before retrying a write.'))
+    }
     follow.current = true
   }
   async function listAndLoad(preferred?: string | null) {
@@ -113,7 +145,10 @@ export default function AgentChat() {
     let assistantId = ''
     const onEvent = (event: AgentEvent) => {
       if (!alive.current) return
-      if (event.type === 'message_start') {
+      if (event.type === 'search_status') {
+        setNotice(tr('正在联网搜索…', 'Searching the web…'))
+      } else if (event.type === 'message_start') {
+        setNotice('')
         const nextId = id()
         assistantId = nextId
         setMessages(previous => [...previous, { id: nextId, role: 'assistant', content: '' }])
@@ -121,6 +156,7 @@ export default function AgentChat() {
         const target = assistantId
         setMessages(previous => previous.map(message => message.id === target ? { ...message, content: message.content + event.text } : message))
       } else if (event.type === 'done') {
+        setNotice('')
         const target = assistantId
         setMessages(previous => target ? previous.map(message => message.id === target ? { ...message, content: event.answer } : message)
           : [...previous, { id: id(), role: 'assistant', content: event.answer }])
@@ -137,13 +173,19 @@ export default function AgentChat() {
       const list = await agentApi.conversations()
       if (alive.current) setConversations(list.items)
     } catch (reason) {
-      if (controller.signal.aborted) {
-        if (alive.current) setNotice(tr('已停止接收。已确认的写入可能已完成，请刷新聊天核对。', 'Stopped receiving. Approved writes may have completed; refresh to check.'))
-      } else throw reason
-    } finally { abort.current = null }
+      // 请求响应丢失不等于写入失败。只读刷新服务端状态，不自动重发消息或审批。
+      if (!alive.current) return
+      if (reason instanceof AgentApiError && reason.status === 401) throw reason
+      try { await loadConversation(conversationId) }
+      catch (recoveryError) {
+        if (recoveryError instanceof AgentApiError && (recoveryError.status === 401 || recoveryError.status === 403)) throw recoveryError
+        setNotice(tr('暂时无法核对服务端状态，请联网后刷新，勿重复提交写入。', 'Cannot check server state. Reconnect and refresh before submitting again.'))
+      }
+      if (!controller.signal.aborted) throw reason
+        } finally { abort.current = null }
   }
   function send(value = text) {
-    if (!value.trim() || !ready || busyRef.current || pending) return
+    if (!value.trim() || !ready || busyRef.current || serverRunning || pending) return
     void operation(async () => {
       setText(''); follow.current = true
       setMessages(previous => [...previous, { id: id(), role: 'user', content: value.trim() }])
@@ -152,19 +194,13 @@ export default function AgentChat() {
   }
   function changeDraft(index: number, patch: Partial<Draft>) {
     setConfirmed(false)
+    setDraftDirty(true)
     setDrafts(previous => previous.map((item, i) => i === index ? { ...item, ...patch } : item))
   }
   const approve = () => {
     if (!pending || !confirmed) return
     void operation(async () => {
-      const decisions: ApprovalDecision[] = drafts.map(draft => ({
-        type: draft.reject ? 'reject' : 'edit',
-        ...(draft.reject ? {} : { changes: {
-          content: combined(draft),
-          ...(draft.visibility === 'keep' ? {} : { visibility: draft.visibility as 'public' | 'private' }),
-          ...(draft.status === 'keep' ? {} : { status: draft.status as 'draft' | 'published' | 'archived' }),
-        } }),
-      }))
+      const decisions = toDecisions(drafts)
       await runStream((onEvent, signal) => agentApi.review(conversationId, pending.approval_id, decisions, onEvent, signal))
     })
   }
@@ -178,6 +214,7 @@ export default function AgentChat() {
       <Tag color={role === 'owner' ? 'green' : 'blue'}>{role === 'owner' ? tr('本人', 'Owner') : tr('访客', 'Guest')}</Tag>
     </div>} styles={{ body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}>
       <div className={styles.toolbar}>
+        {role === 'owner' && <Button disabled={busy || serverRunning} onClick={() => setKnowledgeOpen(true)}>{tr('知识库', 'Knowledge')}</Button>}
         <Select aria-label={tr('选择聊天', 'Select conversation')} className={styles.chatSelect} value={conversationId || undefined} disabled={!ready || busy}
           placeholder={tr('选择聊天', 'Choose conversation')} onChange={value => void operation(() => loadConversation(value))}
           options={conversations.map((item, index) => ({ value: item.conversation_id, label: `${tr('聊天', 'Chat')} ${index + 1} · ${item.message_count} ${tr('条消息', 'messages')}` }))} />
@@ -248,25 +285,32 @@ export default function AgentChat() {
             </fieldset>
           })}
           <Checkbox checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)}>{tr('我已核对内容、公开范围和发布状态', 'I have reviewed the content, visibility and publication status')}</Checkbox>
+          {draftDirty && <p className={styles.muted}>{tr('补充内容尚未暂存。暂存后刷新页面可恢复，仍需确认才会写入资料库。', 'Unsaved edits. Save a review draft to restore it after refresh; confirmation is still required.')}</p>}
           <div className={styles.reviewActions}>
+            <Button disabled={busy || serverRunning || !draftDirty} onClick={() => void operation(async () => {
+              await agentApi.saveReviewDraft(conversationId, pending.approval_id, toDecisions(drafts))
+              setDraftDirty(false)
+              setNotice(tr('审批草稿已暂存；尚未写入个人资料，刷新后可恢复。', 'Review draft saved. No personal record has been written; you can restore it after refresh.'))
+            })}>{tr('暂存补充', 'Save review draft')}</Button>
             <Button disabled={busy} onClick={() => void operation(async () => { await agentApi.cancelReview(conversationId, pending.approval_id); await loadConversation(conversationId); setNotice(tr('已取消本次待审批写入。', 'Pending changes cancelled.')) })}>{tr('取消本次写入', 'Cancel changes')}</Button>
-            <Button type="primary" loading={busy} disabled={!confirmed || drafts.some(draft => !draft.reject && (!draft.content.trim() || combined(draft).length > 20000))} onClick={approve}>{tr('确认处理', 'Confirm decisions')}</Button>
+            <Button type="primary" loading={busy} disabled={serverRunning || !confirmed || drafts.some(draft => !draft.reject && (!draft.content.trim() || combined(draft).length > 20000))} onClick={approve}>{tr('确认处理', 'Confirm decisions')}</Button>
           </div>
         </section>}
       </div>
       <div className={styles.composer}>
         <Input.TextArea aria-label={tr('输入消息', 'Message')} placeholder={pending ? tr('请先处理待确认事项', 'Please review the pending changes') : tr('问问我的经历、项目，或聊点别的…', 'Ask about my experience, projects, or anything else…')}
-          autoSize={{ minRows: 2, maxRows: 5 }} maxLength={12000} value={text} disabled={!ready || busy || !!pending} onChange={event => setText(event.target.value)}
+          autoSize={{ minRows: 2, maxRows: 5 }} maxLength={12000} value={text} disabled={!ready || busy || serverRunning || !!pending} onChange={event => setText(event.target.value)}
           onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); send() } }} />
         <div className={styles.composerFooter}>
           <span className={styles.muted}>{tr('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}</span>
           {busy && abort.current ? <Button icon={<StopOutlined />} onClick={() => abort.current?.abort()}>{tr('停止接收', 'Stop')}</Button>
-            : <Button type="primary" icon={<SendOutlined />} disabled={!ready || busy || !!pending || !text.trim()} onClick={() => send()}>{tr('发送', 'Send')}</Button>}
+            : <Button type="primary" icon={<SendOutlined />} disabled={!ready || busy || serverRunning || !!pending || !text.trim()} onClick={() => send()}>{tr('发送', 'Send')}</Button>}
         </div>
         {ready && <Popconfirm title={tr('清空当前聊天及待确认事项？', 'Clear this conversation and pending changes?')} onConfirm={() => operation(async () => { await agentApi.clear(conversationId); await listAndLoad(conversationId) })} disabled={busy}>
           <Button size="small" type="text" disabled={busy}>{tr('清空当前聊天', 'Clear conversation')}</Button>
         </Popconfirm>}
       </div>
     </Drawer>
+    {open && knowledgeOpen && role === 'owner' && <KnowledgePanel onClose={() => setKnowledgeOpen(false)} onExpired={knowledgeExpired} />}
   </>
 }
