@@ -58,6 +58,8 @@
   font-size: 16px;
   line-height: 1.8;
   color: rgba(0, 0, 0, 0.85);
+  /* 简介里的空行是段落分隔，保留换行而不是折成一整块。 */
+  white-space: pre-line;
 }
 
 [data-theme='dark'] .bio {

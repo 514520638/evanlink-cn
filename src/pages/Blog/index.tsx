@@ -126,7 +126,8 @@ export const Blog: React.FC = () => {
           <div className={styles.filterGroup}>
             <label>{t('blog.tags')}:</label>
             <div className={styles.tags}>
-              {tags.map((tag) => (
+              {/* 还没有文章的标签不进筛选栏，避免出现点开为空的入口；编辑器下拉仍保留全部标签。 */}
+              {tags.filter((tag) => (tag.articleCount ?? 0) > 0).map((tag) => (
                 <Tag
                   key={tag.id}
                   color={selectedTagIds.includes(tag.id) ? tag.color || 'blue' : undefined}
