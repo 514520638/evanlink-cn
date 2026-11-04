@@ -13,7 +13,8 @@ const { Title, Paragraph } = Typography
 const DEFAULT_PAGE_SIZE = 10
 
 export const Blog: React.FC = () => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isZh = i18n.language === 'zh'
   const navigate = useNavigate()
 
   const [articles, setArticles] = useState<Article[]>([])
@@ -72,8 +73,8 @@ export const Blog: React.FC = () => {
   }
 
   const categoryOptions = [
-    { value: 0, label: '全部' },
-    ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+    { value: 0, label: isZh ? '全部' : 'All' },
+    ...categories.map((cat) => ({ value: cat.id, label: isZh ? cat.name : cat.nameEn || cat.name })),
   ]
 
   const handleWriteArticle = async () => {
@@ -134,7 +135,7 @@ export const Blog: React.FC = () => {
                   }`}
                   onClick={() => handleTagClick(tag.id)}
                 >
-                  {tag.name}
+                  {isZh ? tag.name : tag.nameEn || tag.name}
                   {typeof tag.articleCount === 'number' ? ` ${tag.articleCount}` : ''}
                 </Tag>
               ))}
@@ -149,7 +150,7 @@ export const Blog: React.FC = () => {
             <Row gutter={[24, 24]}>
               {articles.map((article) => (
                 <Col key={article.id ?? article.slug} xs={24} sm={12} lg={8}>
-                  <ArticleCard article={article} />
+                  <ArticleCard article={article} tagOptions={tags} />
                 </Col>
               ))}
             </Row>

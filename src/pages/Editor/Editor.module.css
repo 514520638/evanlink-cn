@@ -87,12 +87,14 @@
   min-height: max(820px, calc(100vh - 260px));
 }
 
-.contentInput {
+.contentArea textarea.contentInput {
+  width: 100%;
+  height: 75vh;
   min-height: max(820px, calc(100vh - 260px));
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 15px;
   line-height: 1.8;
-  resize: none;
+  resize: vertical;
 }
 
 [data-theme='dark'] .contentInput {
@@ -208,8 +210,11 @@
   }
 
   .contentArea,
-  .contentInput,
+  .contentArea textarea.contentInput,
   .preview {
     min-height: 60vh;
   }
 }
+
+.metadata summary { cursor: pointer; padding: 8px 0; }
+.metadata[open] summary { margin-bottom: 8px; }

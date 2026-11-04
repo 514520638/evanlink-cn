@@ -16,6 +16,7 @@ import {
 } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleSavePayload, ArticleTagOption } from '../../types'
 import { verifyAdminSession } from '../../utils/adminAuth'
+import { splitBody, combineBody } from '../../utils/articleLanguage'
 import styles from './Editor.module.css'
 
 const { Title } = Typography
@@ -32,6 +33,9 @@ export const Editor: React.FC = () => {
   const [titleEn, setTitleEn] = useState('')
   const [slugValue, setSlugValue] = useState('')
   const [excerpt, setExcerpt] = useState('')
+  const [excerptEn, setExcerptEn] = useState('')
+  const [contentEn, setContentEn] = useState('')
+  const [bodyLang, setBodyLang] = useState<'zh' | 'en'>('zh')
   const [content, setContent] = useState('')
   const [categoryId, setCategoryId] = useState<number | undefined>()
   const [tagIds, setTagIds] = useState<number[]>([])
@@ -91,7 +95,10 @@ export const Editor: React.FC = () => {
     setTitleEn(article.titleEn || '')
     setSlugValue(article.slug)
     setExcerpt(article.excerpt || '')
-    setContent(article.content || '')
+    setExcerptEn(article.excerptEn || '')
+    const body = splitBody(article.content || '')
+    setContent(body.zh)
+    setContentEn(body.en)
     setCategoryId(article.categoryId)
     setTagIds(article.tagIds || [])
   }
@@ -126,7 +133,8 @@ export const Editor: React.FC = () => {
     titleEn: titleEn.trim() || undefined,
     slug: slugValue.trim() || undefined,
     excerpt: excerpt.trim() || undefined,
-    content,
+    excerptEn: excerptEn.trim() || undefined,
+    content: combineBody(content, contentEn),
     categoryId,
     tagIds,
     author: 'Evan',
@@ -235,6 +243,9 @@ export const Editor: React.FC = () => {
           />
         </div>
 
+        <details className={styles.metadata}>
+          <summary>{isZh ? '分类、标签和摘要' : 'Category, tags and excerpts'}</summary>
+          <div className={styles.form}>
         <div className={styles.row}>
           <Input
             placeholder={isZh ? '文章链接 slug，可留空自动生成' : 'Article slug, optional'}
@@ -266,16 +277,21 @@ export const Editor: React.FC = () => {
           autoSize={{ minRows: 2, maxRows: 4 }}
         />
 
+        <TextArea aria-label="English excerpt" placeholder="English excerpt" value={excerptEn} onChange={e => setExcerptEn(e.target.value)} autoSize={{ minRows: 2, maxRows: 4 }} />
+          </div>
+        </details>
+        <Select aria-label="正文语言 / Body language" value={bodyLang} onChange={setBodyLang} options={[{ value: 'zh', label: '中文正文' }, { value: 'en', label: 'English body' }]} />
         <div className={styles.contentArea}>
           {previewMode ? (
             <Card className={styles.preview}>
-              <div className={styles.previewContent}>{renderMarkdown(content)}</div>
+              <div className={styles.previewContent}>{renderMarkdown(bodyLang === 'zh' ? content : contentEn)}</div>
             </Card>
           ) : (
             <TextArea
               placeholder={isZh ? '在这里使用 Markdown 编写文章...' : 'Write your article here using Markdown...'}
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
+              value={bodyLang === 'zh' ? content : contentEn}
+              rows={24}
+              onChange={(event) => (bodyLang === 'zh' ? setContent : setContentEn)(event.target.value)}
               className={styles.contentInput}
             />
           )}

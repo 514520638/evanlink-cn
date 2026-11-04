@@ -2,17 +2,20 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Card, Typography, Tag } from 'antd'
 import { CalendarOutlined, EyeOutlined, ClockCircleOutlined } from '@ant-design/icons'
-import type { Article } from '../../types'
+import type { Article, ArticleTagOption } from '../../types'
+import { useLanguage } from '../../hooks/useLanguage'
 import styles from './ArticleCard.module.css'
 
 const { Title, Paragraph } = Typography
 
 interface ArticleCardProps {
   article: Article
+  tagOptions?: ArticleTagOption[]
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
-  const isZh = true // 可以根据上下文调整
+export const ArticleCard: React.FC<ArticleCardProps> = ({ article, tagOptions = [] }) => {
+  const { language } = useLanguage()
+  const isZh = language === 'zh'
 
   const title = (isZh ? article.title : article.titleEn) || article.title
   const excerpt = (isZh ? article.excerpt : article.excerptEn) || article.excerpt
@@ -42,9 +45,10 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
               </span>
             </div>
             <div className={styles.tags}>
+              {article.category && <Tag>{isZh ? article.category : article.categoryEn || article.category}</Tag>}
               {(article.tags || []).slice(0, 2).map((tag) => (
                 <Tag key={tag} className={styles.tag}>
-                  {tag}
+                  {isZh ? tag : tagOptions.find(item => item.name === tag)?.nameEn || tag}
                 </Tag>
               ))}
             </div>

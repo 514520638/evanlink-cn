@@ -50,3 +50,7 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# 单独上传的博客图稿，放在 public 之外以免进入 dist。
+/.local-blog-assets/
+/public/evan-project-v1/

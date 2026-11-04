@@ -14,9 +14,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { fetchArticleBySlug, increaseArticleView } from '../../api/articles'
-import type { Article as ArticleType } from '../../types'
+import { fetchArticleBySlug, fetchArticleFilters, increaseArticleView } from '../../api/articles'
+import type { Article as ArticleType, ArticleTagOption } from '../../types'
 import { verifyAdminSession } from '../../utils/adminAuth'
+import { splitBody } from '../../utils/articleLanguage'
 import styles from './Article.module.css'
 
 const { Title } = Typography
@@ -26,6 +27,12 @@ export const ArticlePage: React.FC = () => {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
   const navigate = useNavigate()
+  const [tagOptions, setTagOptions] = useState<ArticleTagOption[]>([])
+  useEffect(() => {
+    let active = true
+    fetchArticleFilters().then(data => { if (active) setTagOptions(data.tags) }).catch(() => {})
+    return () => { active = false }
+  }, [])
   const [copied, setCopied] = useState(false)
   const [article, setArticle] = useState<ArticleType | null>(null)
   const [loading, setLoading] = useState(true)
@@ -103,6 +110,7 @@ export const ArticlePage: React.FC = () => {
     )
   }
 
+  const body = splitBody(article.content || '')
   const title = isZh ? article.title : article.titleEn || article.title
 
   return (
@@ -131,9 +139,10 @@ export const ArticlePage: React.FC = () => {
           </span>
         </div>
         <div className={styles.tags}>
+          {article.category && <Tag>{isZh ? article.category : article.categoryEn || article.category}</Tag>}
           {article.tags.map((tag) => (
             <Tag key={tag} color="blue">
-              {tag}
+              {isZh ? tag : tagOptions.find(item => item.name === tag)?.nameEn || tag}
             </Tag>
           ))}
         </div>
@@ -169,7 +178,7 @@ export const ArticlePage: React.FC = () => {
             },
           }}
         >
-          {article.content || ''}
+          {isZh ? body.zh : body.en || body.zh}
         </ReactMarkdown>
       </div>
     </div>
