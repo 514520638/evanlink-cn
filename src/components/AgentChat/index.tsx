@@ -1,25 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
-import { CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
+import { EditOutlined, DeleteOutlined, ControlOutlined, GlobalOutlined, ArrowLeftOutlined, CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { agentApi, AgentApiError, type AgentEvent, type AgentRole, type PendingApproval } from '../../api/agent'
 import { useLanguage } from '../../hooks/useLanguage'
 import styles from './AgentChat.module.css'
 import { combined, draftsFromPending, toDecisions, type Draft } from './approval'
+import { revealStream } from './revealStream'
 import KnowledgePanel from './KnowledgePanel'
 
-type Message = { id: string; role: 'user' | 'assistant'; content: string }
+type Message = { id: string; role: 'user' | 'assistant'; content: string; deltaEnds?: number[] }
 const STORAGE = 'evan-agent-conversation'
 const id = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 const savedId = () => { try { return sessionStorage.getItem(STORAGE) } catch { return null } }
 const rememberId = (value: string) => { try { sessionStorage.setItem(STORAGE, value) } catch { /* 无存储权限仍可聊天 */ } }
 
+/** 用折起的蓝色信笺标记数字分身；小尺寸用于回复签名。 */
+function SignalMark() {
+  return <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+    <path d="M7 32 72 13 53 68 33 50 23 60 21 42Z" fill="#187AE2" />
+    <path d="M7 32 72 13 21 42Z" fill="#80C7FF" />
+    <path d="m21 42 51-29-39 37-10 10Z" fill="#09549F" />
+    <path d="m33 50 39-37-19 55Z" fill="#3196F3" />
+  </svg>
+}
+
 /** 全站聊天抽屉：状态属于组件，凭据仅由服务端 HttpOnly Cookie 管理。 */
-export default function AgentChat() {
+export default function AgentChat({ standalone = false }: { standalone?: boolean }) {
   const { language } = useLanguage()
   const tr = (zh: string, en: string) => language === 'zh' ? zh : en
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(standalone)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const knowledgeExpired = useCallback(() => {
     setKnowledgeOpen(false); setRole('guest'); setReady(false)
@@ -28,10 +39,15 @@ export default function AgentChat() {
   }, [])
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [controlsOpen, setControlsOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [phase, setPhase] = useState<'idle' | 'waiting' | 'searching' | 'writing'>('idle')
+  const [writingId, setWritingId] = useState('')
   const busyRef = useRef(false)
   const [role, setRole] = useState<AgentRole>('guest')
   const [conversationId, setConversationId] = useState('')
-  const [conversations, setConversations] = useState<{ conversation_id: string; message_count: number }[]>([])
+  const [conversations, setConversations] = useState<{ conversation_id: string; message_count: number; title?: string | null }[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -54,7 +70,7 @@ export default function AgentChat() {
   }, [])
   useEffect(() => {
     if (open && follow.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight
-  }, [messages, pending, open])
+  }, [messages, pending, open, phase])
 
   useEffect(() => {
     if (!draftDirty) return
@@ -93,7 +109,7 @@ export default function AgentChat() {
     const result = await agentApi.conversation(value)
     if (!alive.current) return
     setConversationId(value); rememberId(value)
-    const restored = result.messages.map(message => ({ ...message, id: id() }))
+    const restored = result.messages.filter(message => message.content || message.role === 'user').map(message => ({ ...message, id: id() }))
     if (result.pending?.user_message) restored.push({ id: `pending-${result.pending.approval_id}`, role: 'user', content: result.pending.user_message })
     setMessages(restored)
     setReview(result.pending)
@@ -142,27 +158,31 @@ export default function AgentChat() {
   async function runStream(run: (onEvent: (event: AgentEvent) => void, signal: AbortSignal) => Promise<void>) {
     const controller = new AbortController()
     abort.current = controller
+    setPhase('waiting'); setWritingId('')
     let assistantId = ''
     const onEvent = (event: AgentEvent) => {
       if (!alive.current) return
       if (event.type === 'search_status') {
-        setNotice(tr('正在联网搜索…', 'Searching the web…'))
+        setPhase('searching')
       } else if (event.type === 'message_start') {
         setNotice('')
         const nextId = id()
         assistantId = nextId
+        setWritingId(nextId)
         setMessages(previous => [...previous, { id: nextId, role: 'assistant', content: '' }])
       } else if (event.type === 'delta') {
+        setPhase('writing')
         const target = assistantId
-        setMessages(previous => previous.map(message => message.id === target ? { ...message, content: message.content + event.text } : message))
+        setMessages(previous => previous.map(message => message.id === target ? { ...message, content: message.content + event.text, deltaEnds: [...(message.deltaEnds || []), message.content.length + event.text.length] } : message))
       } else if (event.type === 'done') {
+        setPhase('idle')
         setNotice('')
         const target = assistantId
-        setMessages(previous => target ? previous.map(message => message.id === target ? { ...message, content: event.answer } : message)
+        setMessages(previous => target ? previous.map(message => message.id === target ? { ...message, content: event.answer, deltaEnds: undefined } : message)
           : [...previous, { id: id(), role: 'assistant', content: event.answer }])
         setReview(null)
       } else if (event.type === 'approval_required') {
-        setReview(event)
+        setPhase('idle'); setReview(event)
       } else if (event.type === 'error') {
         throw new AgentApiError(event.code === 'unauthorized' ? 401 : event.code === 'conflict' ? 409 : 503, event.message)
       }
@@ -182,7 +202,10 @@ export default function AgentChat() {
         setNotice(tr('暂时无法核对服务端状态，请联网后刷新，勿重复提交写入。', 'Cannot check server state. Reconnect and refresh before submitting again.'))
       }
       if (!controller.signal.aborted) throw reason
-        } finally { abort.current = null }
+    } finally {
+      abort.current = null
+      if (alive.current) { setPhase('idle'); setWritingId('') }
+    }
   }
   function send(value = text) {
     if (!value.trim() || !ready || busyRef.current || serverRunning || pending) return
@@ -205,40 +228,92 @@ export default function AgentChat() {
     })
   }
 
-  return <>
-    <Button className={styles.launcher} type="primary" size="large" icon={<CommentOutlined />} onClick={launch} aria-label={tr('打开 AI 聊天', 'Open AI chat')}>
-      {tr('和我聊聊', 'Chat with me')}
-    </Button>
-    <Drawer open={open} onClose={() => { setOpen(false); setLoginOpen(false); setPassword('') }} width="min(520px, 100vw)" title={<div className={styles.heading}>
-      <span>{role === 'owner' ? tr('小磊 · 私人助手', 'Xiaolei · Assistant') : tr('Evan · AI 数字分身', 'Evan · AI representative')}</span>
-      <Tag color={role === 'owner' ? 'green' : 'blue'}>{role === 'owner' ? tr('本人', 'Owner') : tr('访客', 'Guest')}</Tag>
-    </div>} styles={{ body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}>
-      <div className={styles.toolbar}>
-        {role === 'owner' && <Button disabled={busy || serverRunning} onClick={() => setKnowledgeOpen(true)}>{tr('知识库', 'Knowledge')}</Button>}
-        <Select aria-label={tr('选择聊天', 'Select conversation')} className={styles.chatSelect} value={conversationId || undefined} disabled={!ready || busy}
-          placeholder={tr('选择聊天', 'Choose conversation')} onChange={value => void operation(() => loadConversation(value))}
-          options={conversations.map((item, index) => ({ value: item.conversation_id, label: `${tr('聊天', 'Chat')} ${index + 1} · ${item.message_count} ${tr('条消息', 'messages')}` }))} />
-        <Button icon={<PlusOutlined />} disabled={!ready || busy} title={tr('新聊天', 'New chat')} aria-label={tr('新聊天', 'New chat')}
-          onClick={() => void operation(async () => { const next = await agentApi.createConversation(); await listAndLoad(next.conversation_id) })} />
-        <Button icon={<ReloadOutlined />} disabled={busy} title={tr('刷新聊天', 'Refresh')} aria-label={tr('刷新聊天', 'Refresh')}
-          onClick={() => ready ? void operation(() => listAndLoad(conversationId)) : void initialize()} />
-        {role === 'owner' ? <Button icon={<LogoutOutlined />} disabled={busy} onClick={() => void operation(async () => {
-          await agentApi.logout(); setMessages([]); setReview(null); setReady(false); setRole('guest'); setConversationId(''); setConversations([])
-          await agentApi.guest(); await listAndLoad()
-        })}>{tr('退出', 'Log out')}</Button> : <Button icon={<LoginOutlined />} disabled={busy} onClick={() => setLoginOpen(!loginOpen)}>{tr('本人登录', 'Owner login')}</Button>}
+  const pageRef = useRef<HTMLElement>(null)
+  const firstInitialize = useRef(initialize)
+  useEffect(() => {
+    if (!standalone) return
+    void firstInitialize.current()
+    const previousTitle = document.title
+    document.title = 'Evan · Agent'
+    const viewport = window.visualViewport
+    const resize = () => {
+      if (viewport) pageRef.current?.style.setProperty('--chat-height', viewport.height + 'px')
+    }
+    resize()
+    viewport?.addEventListener('resize', resize)
+    return () => {
+      viewport?.removeEventListener('resize', resize)
+      document.title = previousTitle
+    }
+  }, [standalone])
+
+  const closeManager = () => { setControlsOpen(false); setRenaming(false); setNameDraft(''); setLoginOpen(false); setPassword('') }
+  const currentName = conversations.find(item => item.conversation_id === conversationId)?.title || tr('当前会话', 'Current chat')
+  const manager = <Drawer open={controlsOpen} onClose={closeManager} title={tr('我的会话', 'Conversations')} placement="left" width="min(350px, 92vw)">
+    <div className={styles.manager}>
+      <Button type="primary" block icon={<PlusOutlined />} disabled={!ready || busy} onClick={() => void operation(async () => {
+        const next = await agentApi.createConversation(); await listAndLoad(next.conversation_id); closeManager()
+      })}>{tr('开始新会话', 'New conversation')}</Button>
+      {error && <Alert type="error" showIcon message={error} />}
+      <div className={styles.chatList}>
+        {conversations.map((item, index) => <button type="button" key={item.conversation_id} disabled={busy}
+          aria-current={item.conversation_id === conversationId ? 'true' : undefined}
+          onClick={() => void operation(async () => { await loadConversation(item.conversation_id); closeManager() })}>
+          <CommentOutlined /><span>{item.title || `${tr('聊天', 'Chat')} ${index + 1}`}</span><small>{item.message_count}</small>
+        </button>)}
       </div>
-      {loginOpen && <form className={styles.login} onSubmit={event => { event.preventDefault(); void operation(async () => {
+      {ready && <section className={styles.manageActions}>
+        <strong>{currentName}</strong>
+        {renaming ? <form onSubmit={event => { event.preventDefault(); if (!nameDraft.trim()) return
+          void operation(async () => {
+            const title = nameDraft.trim()
+            await agentApi.renameConversation(conversationId, title)
+            setConversations(list => list.map(item => item.conversation_id === conversationId ? { ...item, title } : item))
+            setRenaming(false)
+          })
+        }}><Input autoFocus aria-label={tr('会话名称','Conversation name')} maxLength={60} value={nameDraft} onChange={e => setNameDraft(e.target.value)} />
+          <Button htmlType="submit" disabled={busy || !nameDraft.trim()}>{tr('保存','Save')}</Button><Button type="text" onClick={() => setRenaming(false)}>{tr('取消','Cancel')}</Button></form> :
+          <Button type="text" icon={<EditOutlined />} disabled={busy} onClick={() => { setNameDraft(conversations.find(item => item.conversation_id === conversationId)?.title || ''); setRenaming(true) }}>{tr('重命名', 'Rename')}</Button>}
+        <Popconfirm title={tr('清空这段聊天及待确认事项？','Clear this chat and pending approvals?')} okText={tr('清空','Clear')} cancelText={tr('取消','Cancel')} onConfirm={() => operation(async () => { await agentApi.clear(conversationId); await listAndLoad(conversationId); closeManager() })}>
+          <Button type="text" danger icon={<DeleteOutlined />} disabled={busy || serverRunning}>{tr('清空内容','Clear messages')}</Button>
+        </Popconfirm>
+        <Popconfirm title={tr('永久删除这段会话？', 'Delete this conversation permanently?')}
+          description={tr('聊天记录和待审批内容将被删除。个人知识库会保留。', 'Messages and pending approvals will be deleted. Your knowledge records are retained.')}
+          okText={tr('删除会话', 'Delete conversation')} cancelText={tr('取消', 'Cancel')} okButtonProps={{ danger: true }}
+          onConfirm={() => operation(async () => {
+            await agentApi.deleteConversation(conversationId)
+            setMessages([]); setReview(null); setConversationId(''); rememberId('')
+            setRenaming(false); await listAndLoad()
+          })}>
+          <Button type="text" danger icon={<DeleteOutlined />} disabled={busy || serverRunning}>{tr('删除会话', 'Delete conversation')}</Button>
+        </Popconfirm>
+      </section>}
+      <section className={styles.accountSection}><h3>{tr('账号与资料', 'Account & knowledge')}</h3><div className={styles.accountTools}>
+        <Button icon={<ReloadOutlined />} disabled={busy} onClick={() => ready ? void operation(() => listAndLoad(conversationId)) : void initialize()}>{tr('刷新','Refresh')}</Button>
+        {role === 'owner' && <Button disabled={busy || serverRunning} onClick={() => { closeManager(); setKnowledgeOpen(true) }}>{tr('知识库', 'Knowledge')}</Button>}
+        {role === 'owner' ? <Button icon={<LogoutOutlined />} disabled={busy} onClick={() => void operation(async () => {
+          await agentApi.logout(); closeManager(); setMessages([]); setReview(null); setReady(false); setRole('guest'); setConversationId(''); setConversations([])
+          await agentApi.guest(); await listAndLoad()
+        })}>{tr('退出', 'Log out')}</Button> : <Button icon={<LoginOutlined />} disabled={busy} onClick={() => { setLoginOpen(!loginOpen); setPassword('') }}>{tr('本人登录', 'Owner login')}</Button>}
+      </div>
+      {loginOpen && <form className={styles.accountLogin} onSubmit={event => { event.preventDefault(); void operation(async () => {
         try {
           const result = await agentApi.login(password)
-          setReady(false); setRole(result.role); setMessages([]); setReview(null); setConversations([]); setConversationId(''); setLoginOpen(false)
+          setReady(false); setRole(result.role); setMessages([]); setReview(null); setConversations([]); setConversationId(''); closeManager()
           await listAndLoad()
         } finally { setPassword('') }
       }) }}>
         <label htmlFor="agent-password">{tr('Agent 本人密码', 'Agent owner password')}</label>
         <div className={styles.row}><Input.Password id="agent-password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
-          <Button htmlType="submit" type="primary" disabled={!password || busy}>{tr('登录', 'Log in')}</Button></div>
+          <Button htmlType="submit" type="primary" loading={busy} disabled={!password || busy}>{tr('登录', 'Log in')}</Button></div>
         <p className={styles.muted}>{tr('使用 Agent 设置的本人密码，不是博客后台密码。', 'Use your Agent password, not the blog admin password.')}</p>
       </form>}
+      </section>
+    </div>
+  </Drawer>
+  const chatBody = <>
+      {manager}
+      {!standalone && <button className={styles.chatSwitcher} onClick={() => setControlsOpen(true)}><ControlOutlined /><span>{currentName}</span>{tr('管理会话','Manage chats')}</button>}
       <div className={styles.alerts}>
         {error && <Alert type="error" showIcon message={error} action={<Button size="small" disabled={busy} onClick={() => void initialize()}>{tr('重新连接', 'Reconnect')}</Button>} />}
         {notice && <Alert type="info" showIcon message={notice} />}
@@ -246,18 +321,23 @@ export default function AgentChat() {
       <div className={styles.timeline} ref={scroll} onScroll={event => { const target = event.currentTarget; follow.current = target.scrollHeight - target.scrollTop - target.clientHeight < 90 }}>
         {!ready && busy && <div className={styles.empty}><Spin /><p>{tr('正在连接…', 'Connecting…')}</p></div>}
         {ready && messages.length === 0 && !pending && <div className={styles.empty}>
-          <CommentOutlined className={styles.emptyIcon} />
-          <h2>{role === 'owner' ? tr('小磊在这里', 'Xiaolei is here') : tr('从一个问题开始', 'Start with a question')}</h2>
-          <p>{role === 'owner' ? tr('聊聊近况，或告诉我你想记住的事情。保存前会请你确认。', 'Tell me what you want to remember. You will review it before saving.') : tr('我是作者的 AI 数字分身，可以根据已公开的资料介绍经历、项目和兴趣。', 'I am the author’s AI representative. Ask about publicly shared experience, projects and interests.')}</p>
-          <div className={styles.suggestions}>{(role === 'owner' ? ['小磊，记住，我在北京工作', '查看我的个人资料'] : ['你叫什么名字？', '介绍一下你的项目经历', '我想看看你的简历']).map(question => <Button key={question} onClick={() => send(question)} disabled={busy}>{question}</Button>)}</div>
+          <div className={styles.emblem}><svg className={styles.trail} viewBox="0 0 190 60" aria-hidden="true"><path d="M2 48C28 50 65 49 65 32C65 16 41 17 45 33C50 49 93 44 141 15" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" /></svg><SignalMark /></div>
+          <h2>{role === 'owner' ? tr('你好，我是小磊', 'Hi, I’m Xiaolei') : tr('你好，我是 Evan。', 'Hi, I’m Evan.')}</h2>
+          <p>{role === 'owner'
+            ? tr('我是你的私人助手，可以帮你查找和整理个人资料。你想记住的事，我会在你确认后保存。', 'I’m your personal assistant. I can find and organize your records, and I’ll ask for your approval before saving a new memory.')
+            : tr('我是 Evan 的 AI 数字分身。想了解我的经历、项目，或者聊聊工作之外的兴趣，都可以从这里开始。', 'I’m Evan’s AI representative. Ask about my work, the projects I’ve built, or what I enjoy outside of work.')}</p>
         </div>}
         <div role="log" aria-label={tr('聊天记录', 'Conversation')} aria-live="off">
-          {messages.map(message => <article key={message.id} className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant}`}>
-            <div className={styles.speaker}>{message.role === 'user' ? tr('你', 'You') : role === 'owner' ? '小磊' : 'Evan · AI'}</div>
-            <div className={styles.markdown}>{message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: props => <a href={props.href} target="_blank" rel="noopener noreferrer">{props.children}</a> }}>{message.content}</ReactMarkdown> : <span className={styles.muted}>{tr('正在组织回答…', 'Preparing a reply…')}</span>}</div>
+          {messages.filter(message => message.content || message.role === 'user').map(message => <article key={message.id} className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant} ${message.id === writingId && phase === 'writing' ? styles.writing : ''}`}>
+            {message.role === 'assistant' && <div className={styles.speaker}><SignalMark />{role === 'owner' ? '小磊' : 'Evan · AI'}</div>}
+            <div className={styles.markdown}>{message.role === 'user' ? <span className={styles.userText}>{message.content}</span> : message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={message.deltaEnds?.length && message.id === writingId && phase === 'writing' ? [[revealStream, message.deltaEnds]] : []} skipHtml components={{ a: props => <a href={props.href} target="_blank" rel="noopener noreferrer">{props.children}</a> }}>{message.content}</ReactMarkdown> : <span className={styles.muted}>{tr('正在组织回答…', 'Preparing a reply…')}</span>}</div>
           </article>)}
         </div>
-        {busy && <p className={styles.muted} role="status">{tr('正在处理…', 'Working…')}</p>}
+        {(phase === 'waiting' || phase === 'searching') && <div className={styles.activity} role="status">
+          {phase === 'searching' ? <span className={styles.scan} aria-hidden="true"><GlobalOutlined /></span>
+            : <span className={styles.wave} aria-hidden="true"><i /><i /><i /><i /><i /></span>}
+          {phase === 'searching' ? tr('正在联网查找资料', 'Searching the web') : tr('正在整理回答', 'Preparing a reply')}
+        </div>}
         {pending && role === 'owner' && <section className={styles.review} aria-label={tr('长期记忆审批', 'Memory review')}>
           <h2>{tr('确认这次记忆', 'Review this memory')}</h2>
           <p className={styles.muted}>{tr('资料尚未写入。补充内容并核对公开范围后，再确认保存。', 'Nothing has been saved yet. Review the content and visibility before confirming.')}</p>
@@ -299,18 +379,42 @@ export default function AgentChat() {
       </div>
       <div className={styles.composer}>
         <Input.TextArea aria-label={tr('输入消息', 'Message')} placeholder={pending ? tr('请先处理待确认事项', 'Please review the pending changes') : tr('问问我的经历、项目，或聊点别的…', 'Ask about my experience, projects, or anything else…')}
-          autoSize={{ minRows: 2, maxRows: 5 }} maxLength={12000} value={text} disabled={!ready || busy || serverRunning || !!pending} onChange={event => setText(event.target.value)}
-          onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); send() } }} />
+          autoSize={{ minRows: 1, maxRows: 5 }} maxLength={12000} value={text} disabled={!ready || busy || serverRunning || !!pending} onChange={event => setText(event.target.value)}
+          onKeyDown={event => { if (event.key === 'Enter' && !window.matchMedia('(pointer: coarse)').matches && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); send() } }} />
         <div className={styles.composerFooter}>
-          <span className={styles.muted}>{tr('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}</span>
-          {busy && abort.current ? <Button icon={<StopOutlined />} onClick={() => abort.current?.abort()}>{tr('停止接收', 'Stop')}</Button>
-            : <Button type="primary" icon={<SendOutlined />} disabled={!ready || busy || serverRunning || !!pending || !text.trim()} onClick={() => send()}>{tr('发送', 'Send')}</Button>}
+          <span className={styles.muted}><span className={styles.desktopHint}>{tr('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}</span><span className={styles.touchHint}>{tr('回车换行', 'Return for a new line')}</span></span>
+          {busy && abort.current ? <Button className={styles.sendControl} aria-label={tr('停止接收', 'Stop response')} title={tr('停止接收', 'Stop response')} icon={<StopOutlined />} onClick={() => abort.current?.abort()} />
+            : <Button className={styles.sendControl} aria-label={tr('发送', 'Send')} title={tr('发送', 'Send')} type="primary" icon={<SendOutlined />} disabled={!ready || busy || serverRunning || !!pending || !text.trim()} onClick={() => send()} />}
         </div>
-        {ready && <Popconfirm title={tr('清空当前聊天及待确认事项？', 'Clear this conversation and pending changes?')} onConfirm={() => operation(async () => { await agentApi.clear(conversationId); await listAndLoad(conversationId) })} disabled={busy}>
-          <Button size="small" type="text" disabled={busy}>{tr('清空当前聊天', 'Clear conversation')}</Button>
-        </Popconfirm>}
+
       </div>
+  </>
+  const knowledge = open && knowledgeOpen && role === 'owner' && <KnowledgePanel onClose={() => setKnowledgeOpen(false)} onExpired={knowledgeExpired} />
+  if (standalone) return <main ref={pageRef} className={styles.page}>
+    <div className={styles.pageInner}>
+      <header className={styles.pageHeader}>
+        <div className={styles.identity}><span className={styles.brandMark}><SignalMark /></span><div><h1>{currentName === tr('当前会话', 'Current chat') ? (role === 'owner' ? tr('小磊', 'Xiaolei') : 'Evan') : currentName}</h1>
+          <span>{role === 'owner' ? tr('私人助手', 'Personal assistant') : tr('AI 数字分身', 'AI representative')}</span></div></div>
+        <nav className={styles.pageNav}>
+          <button type="button" aria-expanded={controlsOpen} onClick={() => setControlsOpen(!controlsOpen)}><ControlOutlined /> {tr('会话', 'Chat options')}</button>
+          <a href="/"><ArrowLeftOutlined /> {tr('博客', 'Blog')}</a>
+        </nav>
+      </header>
+      {chatBody}
+    </div>
+    {knowledge}
+  </main>
+
+  return <>
+    <Button className={styles.launcher} type="primary" size="large" icon={<CommentOutlined />} onClick={launch} aria-label={tr('打开 AI 聊天', 'Open AI chat')}>
+      {tr('和我聊聊', 'Chat with me')}
+    </Button>
+    <Drawer push={false} rootClassName={styles.chatDrawer} open={open} onClose={() => { setOpen(false); setLoginOpen(false); setPassword('') }} width="min(520px, 100vw)" extra={<a href="/chat">{tr('全屏聊天', 'Full screen')}</a>} title={<div className={styles.heading}>
+      <span>{role === 'owner' ? tr('小磊 · 私人助手', 'Xiaolei · Assistant') : tr('Evan · AI 数字分身', 'Evan · AI representative')}</span>
+      <Tag color={role === 'owner' ? 'green' : 'blue'}>{role === 'owner' ? tr('本人', 'Owner') : tr('访客', 'Guest')}</Tag>
+    </div>} styles={{ body: { padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}>
+      {chatBody}
     </Drawer>
-    {open && knowledgeOpen && role === 'owner' && <KnowledgePanel onClose={() => setKnowledgeOpen(false)} onExpired={knowledgeExpired} />}
+    {knowledge}
   </>
 }

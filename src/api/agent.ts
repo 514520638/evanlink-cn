@@ -119,10 +119,12 @@ export const agentApi = {
   guest: async (): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/guest', 'POST')).json(),
   login: async (password: string): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/login', 'POST', { password })).json(),
   logout: async () => { await request('/auth/logout', 'POST') },
+  renameConversation: async (id: string, title: string) => { await request(`/conversations/${encodeURIComponent(id)}`, 'PATCH', { title }) },
   createConversation: async (): Promise<{ conversation_id: string }> => (await request('/conversations', 'POST')).json(),
-  conversations: async (): Promise<{ items: { conversation_id: string; message_count: number }[] }> => (await request('/conversations')).json(),
+  conversations: async (): Promise<{ items: { conversation_id: string; message_count: number; title?: string | null }[] }> => (await request('/conversations')).json(),
   conversation: async (id: string): Promise<Conversation> => (await request(`/conversations/${encodeURIComponent(id)}`)).json(),
   clear: async (id: string) => { await request(`/conversations/${encodeURIComponent(id)}/messages`, 'DELETE') },
+  deleteConversation: async (id: string) => { await request(`/conversations/${encodeURIComponent(id)}`, 'DELETE') },
   send: (id: string, message: string, onEvent: (event: AgentEvent) => void, signal?: AbortSignal) =>
     stream(`/conversations/${encodeURIComponent(id)}/messages`, { message }, onEvent, signal),
   review: (id: string, approvalId: string, decisions: ApprovalDecision[], onEvent: (event: AgentEvent) => void, signal?: AbortSignal) =>

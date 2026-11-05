@@ -1,5 +1,6 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import AgentChat from '../components/AgentChat'
 import { Layout } from '../components/Layout'
 import { Home } from '../pages/Home'
 import { Blog } from '../pages/Blog'
@@ -12,6 +13,8 @@ import { Album } from '../pages/Album'
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
+      <Route path="/chat" element={<AgentChat standalone />} />
+      <Route path="/agent" element={<Navigate replace to="/chat" />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="blog" element={<Blog />} />

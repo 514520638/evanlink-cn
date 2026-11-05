@@ -254,6 +254,12 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* 首列常是短标签（层、图标、组件），不设下限会被挤成竖排换行。 */
+.markdown-content th:first-child,
+.markdown-content td:first-child {
+  min-width: 5em;
+}
+
 .markdown-content th {
   background: rgba(0, 0, 0, 0.02);
   font-weight: 600;
