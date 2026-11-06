@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# 静态前端先传资源，最后原子替换首页。旧哈希文件保留用于回滚与旧标签页。
+# [POS] 博客静态产物部署入口，保留旧哈希资源用于回滚与旧标签页。
+# [INPUT] .github/workflows/deploy.yml (POS: 前端构建与传输流程)
+# [OUTPUT] 先复制资源再原子替换首页并验证，失败恢复旧入口。
 set -Eeuo pipefail
 incoming=${1:?Incoming directory required}
 sha=${2:?Commit SHA required}
@@ -7,7 +9,9 @@ run=${3:?Run identifier required}
 [[ "$sha" =~ ^[a-f0-9]{40}$ && "$run" =~ ^[0-9]+-[0-9]+$ ]]
 [[ "$incoming" == "/tmp/evanlink-ci-$sha-$run" ]]
 exec 9>/var/lock/evanlink-release.lock
+echo "Waiting for server release lock (up to 10 minutes)"
 flock -w 600 9
+echo "Release lock acquired"
 site=/opt/evanlink-frontend/html
 backup="/opt/evanlink-frontend/backups/ci-$sha-$run"
 install -d -m 700 /opt/evanlink-frontend/backups

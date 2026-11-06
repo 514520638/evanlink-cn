@@ -8,4 +8,7 @@
 完整配置、回滚和启用步骤见 evan-agent/docs/AUTO_DEPLOY.md。
 
 deploy/ci-deploy.sh 先复制资源，再替换首页并验证，失败恢复旧首页。
-服务器的 /var/lock/evanlink-release.lock 与 Agent 共享，防止并发发布。
+上传前检查私钥、known_hosts 主机记录和 SSH 连接，必须输出 SSH_READY。
+上传与部署分为独立步骤，分别最多 8 分钟、20 分钟。
+服务器的 /var/lock/evanlink-release.lock 与 Agent、Java 后端共享，防止并发发布，最长等待 10 分钟。
+Host key verification failed 表示需要在本仓库重新填写已验证的 DEPLOY_KNOWN_HOSTS；不能关闭主机身份校验。
