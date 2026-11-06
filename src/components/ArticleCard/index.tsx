@@ -28,6 +28,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, tagOptions = 
             <span className={styles.date}>
               <CalendarOutlined /> {article.publishDate}
             </span>
+            {article.category && <span className={styles.category}>{isZh ? article.category : article.categoryEn || article.category}</span>}
           </div>
           <Title level={4} className={styles.title}>
             {title}
@@ -38,16 +39,15 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({ article, tagOptions = 
           <div className={styles.footer}>
             <div className={styles.stats}>
               <span className={styles.stat}>
-                <ClockCircleOutlined /> {article.readingTime} min
+                <ClockCircleOutlined /> <span>{article.readingTime ?? '—'} {isZh ? '分钟阅读' : 'min read'}</span>
               </span>
               <span className={styles.stat}>
-                <EyeOutlined /> {article.views}
+                <EyeOutlined /> <span>{article.views ?? 0} {isZh ? '次阅读' : 'views'}</span>
               </span>
             </div>
             <div className={styles.tags}>
-              {article.category && <Tag>{isZh ? article.category : article.categoryEn || article.category}</Tag>}
               {(article.tags || []).slice(0, 2).map((tag) => (
-                <Tag key={tag} className={styles.tag}>
+                <Tag key={tag} className={styles.tag} title={isZh ? tag : tagOptions.find(item => item.name === tag)?.nameEn || tag}>
                   {isZh ? tag : tagOptions.find(item => item.name === tag)?.nameEn || tag}
                 </Tag>
               ))}
