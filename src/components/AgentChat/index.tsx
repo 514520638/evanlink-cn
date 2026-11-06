@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
-import { EditOutlined, DeleteOutlined, ControlOutlined, GlobalOutlined, ArrowLeftOutlined, CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
+import { PictureOutlined, EditOutlined, DeleteOutlined, ControlOutlined, GlobalOutlined, ArrowLeftOutlined, CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { agentApi, AgentApiError, type AgentEvent, type AgentRole, type PendingApproval } from '../../api/agent'
@@ -8,6 +8,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 import styles from './AgentChat.module.css'
 import { combined, draftsFromPending, toDecisions, type Draft } from './approval'
 import { revealStream } from './revealStream'
+import { prepareImage, ChatImage, UserContent } from './images'
 import KnowledgePanel from './KnowledgePanel'
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string; deltaEnds?: number[] }
@@ -42,13 +43,19 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
   const [controlsOpen, setControlsOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
-  const [phase, setPhase] = useState<'idle' | 'waiting' | 'searching' | 'writing'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'waiting' | 'searching' | 'writing' | 'analyzing' | 'generating'>('idle')
   const [writingId, setWritingId] = useState('')
   const busyRef = useRef(false)
   const [role, setRole] = useState<AgentRole>('guest')
   const [conversationId, setConversationId] = useState('')
   const [conversations, setConversations] = useState<{ conversation_id: string; message_count: number; title?: string | null }[]>([])
   const [messages, setMessages] = useState<Message[]>([])
+  const [attachment, setAttachment] = useState<{ blob: Blob; url: string } | null>(null)
+  const [preparingImage, setPreparingImage] = useState(false)
+  const imageEpoch = useRef(0)
+  const fileInput = useRef<HTMLInputElement>(null)
+  useEffect(() => () => { if (attachment) URL.revokeObjectURL(attachment.url) }, [attachment])
+  useEffect(() => { imageEpoch.current++; setAttachment(null) }, [conversationId, role])
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -162,7 +169,9 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     let assistantId = ''
     const onEvent = (event: AgentEvent) => {
       if (!alive.current) return
-      if (event.type === 'search_status') {
+      if (event.type === 'image_status') {
+        setPhase(event.action === 'generate_image' ? 'generating' : 'analyzing')
+      } else if (event.type === 'search_status') {
         setPhase('searching')
       } else if (event.type === 'message_start') {
         setNotice('')
@@ -208,11 +217,14 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     }
   }
   function send(value = text) {
-    if (!value.trim() || !ready || busyRef.current || serverRunning || pending) return
+    if ((!value.trim() && !attachment) || !ready || busyRef.current || serverRunning || pending || preparingImage) return
     void operation(async () => {
-      setText(''); follow.current = true
-      setMessages(previous => [...previous, { id: id(), role: 'user', content: value.trim() }])
-      await runStream((onEvent, signal) => agentApi.send(conversationId, value.trim(), onEvent, signal))
+      const picture = attachment ? await agentApi.uploadImage(conversationId, attachment.blob) : null
+      const question = value.trim() || '请描述并分析这张图片。'
+      const shown = question + (picture ? '\n\n![上传的图片](' + picture.url + ')' : '')
+      setText(''); setAttachment(null); follow.current = true
+      setMessages(previous => [...previous, { id: id(), role: 'user', content: shown }])
+      await runStream((onEvent, signal) => agentApi.send(conversationId, question, onEvent, signal, picture?.id))
     })
   }
   function changeDraft(index: number, patch: Partial<Draft>) {
@@ -236,13 +248,23 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     const previousTitle = document.title
     document.title = 'Evan · Agent'
     const viewport = window.visualViewport
+    document.documentElement.classList.add(styles.viewportLock)
     const resize = () => {
-      if (viewport) pageRef.current?.style.setProperty('--chat-height', viewport.height + 'px')
+      const page = pageRef.current
+      if (!page) return
+      page.style.setProperty('--chat-height', (viewport?.height ?? window.innerHeight) + 'px')
+      page.style.setProperty('--chat-top', (viewport?.offsetTop ?? 0) + 'px')
+      if (follow.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight
     }
     resize()
     viewport?.addEventListener('resize', resize)
+    viewport?.addEventListener('scroll', resize)
+    window.addEventListener('resize', resize)
     return () => {
       viewport?.removeEventListener('resize', resize)
+      viewport?.removeEventListener('scroll', resize)
+      window.removeEventListener('resize', resize)
+      document.documentElement.classList.remove(styles.viewportLock)
       document.title = previousTitle
     }
   }, [standalone])
@@ -330,13 +352,13 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
         <div role="log" aria-label={tr('聊天记录', 'Conversation')} aria-live="off">
           {messages.filter(message => message.content || message.role === 'user').map(message => <article key={message.id} className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant} ${message.id === writingId && phase === 'writing' ? styles.writing : ''}`}>
             {message.role === 'assistant' && <div className={styles.speaker}><SignalMark />{role === 'owner' ? '小磊' : 'Evan · AI'}</div>}
-            <div className={styles.markdown}>{message.role === 'user' ? <span className={styles.userText}>{message.content}</span> : message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={message.deltaEnds?.length && message.id === writingId && phase === 'writing' ? [[revealStream, message.deltaEnds]] : []} skipHtml components={{ a: props => <a href={props.href} target="_blank" rel="noopener noreferrer">{props.children}</a> }}>{message.content}</ReactMarkdown> : <span className={styles.muted}>{tr('正在组织回答…', 'Preparing a reply…')}</span>}</div>
+            <div className={styles.markdown}>{message.role === 'user' ? <UserContent text={message.content} conversation={conversationId} /> : message.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={message.deltaEnds?.length && message.id === writingId && phase === 'writing' ? [[revealStream, message.deltaEnds]] : []} skipHtml components={{ img: props => <ChatImage src={props.src} alt={props.alt} conversation={conversationId} />, a: props => <a href={props.href} target="_blank" rel="noopener noreferrer">{props.children}</a> }}>{message.content}</ReactMarkdown> : <span className={styles.muted}>{tr('正在组织回答…', 'Preparing a reply…')}</span>}</div>
           </article>)}
         </div>
-        {(phase === 'waiting' || phase === 'searching') && <div className={styles.activity} role="status">
+        {(['waiting', 'searching', 'analyzing', 'generating'].includes(phase)) && <div className={styles.activity} role="status">
           {phase === 'searching' ? <span className={styles.scan} aria-hidden="true"><GlobalOutlined /></span>
             : <span className={styles.wave} aria-hidden="true"><i /><i /><i /><i /><i /></span>}
-          {phase === 'searching' ? tr('正在联网查找资料', 'Searching the web') : tr('正在整理回答', 'Preparing a reply')}
+          {phase === 'generating' ? tr('正在生成图片…', 'Generating an image…') : phase === 'analyzing' ? tr('正在识别图片…', 'Reading the image…') : phase === 'searching' ? tr('正在联网查找资料', 'Searching the web') : tr('正在整理回答', 'Preparing a reply')}
         </div>}
         {pending && role === 'owner' && <section className={styles.review} aria-label={tr('长期记忆审批', 'Memory review')}>
           <h2>{tr('确认这次记忆', 'Review this memory')}</h2>
@@ -378,13 +400,23 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
         </section>}
       </div>
       <div className={styles.composer}>
+        {attachment && <div className={styles.imagePreview}><img src={attachment.url} alt="待发送图片" /><Button disabled={busy} onClick={() => setAttachment(null)}>移除</Button></div>}
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async event => {
+          const file = event.target.files?.[0]; event.target.value = ''
+          if (!file) return
+          const epoch = imageEpoch.current
+          setPreparingImage(true)
+          try { const blob = await prepareImage(file); if (alive.current && imageEpoch.current === epoch) setAttachment({ blob, url: URL.createObjectURL(blob) }) }
+          catch (reason) { setError(reason instanceof Error ? reason.message : '图片处理失败') }
+          finally { setPreparingImage(false) }
+        }} />
         <Input.TextArea aria-label={tr('输入消息', 'Message')} placeholder={pending ? tr('请先处理待确认事项', 'Please review the pending changes') : tr('问问我的经历、项目，或聊点别的…', 'Ask about my experience, projects, or anything else…')}
           autoSize={{ minRows: 1, maxRows: 5 }} maxLength={12000} value={text} disabled={!ready || busy || serverRunning || !!pending} onChange={event => setText(event.target.value)}
           onKeyDown={event => { if (event.key === 'Enter' && !window.matchMedia('(pointer: coarse)').matches && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); send() } }} />
-        <div className={styles.composerFooter}>
+        <div className={styles.composerFooter}><Button type="text" icon={<PictureOutlined />} aria-label="上传图片" title="上传图片" loading={preparingImage} disabled={!ready || busy || serverRunning || !!pending} onClick={() => fileInput.current?.click()} />
           <span className={styles.muted}><span className={styles.desktopHint}>{tr('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}</span><span className={styles.touchHint}>{tr('回车换行', 'Return for a new line')}</span></span>
           {busy && abort.current ? <Button className={styles.sendControl} aria-label={tr('停止接收', 'Stop response')} title={tr('停止接收', 'Stop response')} icon={<StopOutlined />} onClick={() => abort.current?.abort()} />
-            : <Button className={styles.sendControl} aria-label={tr('发送', 'Send')} title={tr('发送', 'Send')} type="primary" icon={<SendOutlined />} disabled={!ready || busy || serverRunning || !!pending || !text.trim()} onClick={() => send()} />}
+            : <Button className={styles.sendControl} aria-label={tr('发送', 'Send')} title={tr('发送', 'Send')} type="primary" icon={<SendOutlined />} disabled={!ready || busy || serverRunning || !!pending || preparingImage || (!text.trim() && !attachment)} onClick={() => send()} />}
         </div>
 
       </div>

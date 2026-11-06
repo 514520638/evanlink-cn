@@ -130,6 +130,16 @@
 .userText { white-space: pre-wrap; overflow-wrap: anywhere; }
 .assistant .markdown p { white-space: pre-line; }
 .touchHint { display: none; }
+.viewportLock, .viewportLock body { overflow: hidden; overscroll-behavior: none; }
+.viewportLock { background-color: #fff; }
+:global([data-theme='dark']).viewportLock { background-color: #101f2d; }
+.viewportLock .page { position: fixed; inset-inline: 0; top: var(--chat-top, 0px); overflow: hidden; }
+/* 博客全局 Ant 输入主题使用 important，这里仅覆盖聊天输入框。 */
+:global([data-theme]) .composer textarea:global(.ant-input) {
+  background: transparent !important; border-color: transparent !important;
+  color: var(--ink) !important; caret-color: var(--accent); box-shadow: none !important;
+}
+:global([data-theme]) .composer textarea:global(.ant-input)::placeholder { color: var(--muted) !important; opacity: .85; }
 @media (pointer: coarse) {
   .desktopHint { display: none; }
   .touchHint { display: inline; }
@@ -221,3 +231,6 @@
 .accountLogin .row > button { width: 100%; min-height: 40px; }
 .accountLogin :global(input) { font-size: 16px; }
 .manageActions > :global(button) { display: flex; align-items: center; width: 100%; min-height: 40px; text-align: left; }
+
+.imagePreview { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.imagePreview img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }

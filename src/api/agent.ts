@@ -26,6 +26,7 @@ export interface PendingApproval {
   review_configs: { action_name: string; allowed_decisions: string[] }[]
 }
 export type AgentEvent =
+  | { type: 'image_status'; action: 'analyze_image' | 'generate_image' }
   | { type: 'search_status'; message: string }
   | { type: 'message_start' }
   | { type: 'delta'; text: string }
@@ -115,6 +116,13 @@ export const agentApi = {
   profiles: async (offset = 0): Promise<{ items: ProfileEntry[]; has_more: boolean }> => (await request(`/profiles?offset=${offset}&limit=20`)).json(),
   saveProfile: async (data: ProfileInput, id?: string): Promise<ProfileEntry> => (await request(id ? `/profiles/${encodeURIComponent(id)}` : '/profiles', id ? 'PATCH' : 'POST', data)).json(),
   deleteProfile: async (id: string) => { await request(`/profiles/${encodeURIComponent(id)}`, 'DELETE') },
+  uploadImage: async (id: string, image: Blob): Promise<{ id: string; url: string }> => {
+    const response = await fetch(BASE + `/conversations/${encodeURIComponent(id)}/images`, {
+      method: 'POST', body: image, credentials: 'include', headers: { 'X-Agent-Request': '1', 'Content-Type': image.type },
+    })
+    if (!response.ok) throw new AgentApiError(response.status, '图片上传失败，请检查大小、格式或登录状态')
+    return response.json()
+  },
   me: async (): Promise<{ role: AgentRole; user_id: string | null }> => (await request('/auth/me')).json(),
   guest: async (): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/guest', 'POST')).json(),
   login: async (password: string): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/login', 'POST', { password })).json(),
@@ -125,8 +133,8 @@ export const agentApi = {
   conversation: async (id: string): Promise<Conversation> => (await request(`/conversations/${encodeURIComponent(id)}`)).json(),
   clear: async (id: string) => { await request(`/conversations/${encodeURIComponent(id)}/messages`, 'DELETE') },
   deleteConversation: async (id: string) => { await request(`/conversations/${encodeURIComponent(id)}`, 'DELETE') },
-  send: (id: string, message: string, onEvent: (event: AgentEvent) => void, signal?: AbortSignal) =>
-    stream(`/conversations/${encodeURIComponent(id)}/messages`, { message }, onEvent, signal),
+  send: (id: string, message: string, onEvent: (event: AgentEvent) => void, signal?: AbortSignal, imageId?: string) =>
+    stream(`/conversations/${encodeURIComponent(id)}/messages`, { message, image_id: imageId }, onEvent, signal),
   review: (id: string, approvalId: string, decisions: ApprovalDecision[], onEvent: (event: AgentEvent) => void, signal?: AbortSignal) =>
     stream(`/conversations/${encodeURIComponent(id)}/approvals/${encodeURIComponent(approvalId)}`, { decisions }, onEvent, signal),
   saveReviewDraft: async (id: string, approvalId: string, decisions: ApprovalDecision[]) => {
