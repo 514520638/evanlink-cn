@@ -36,3 +36,8 @@
   .previewStage { height: 55dvh; }
 }
 @media(prefers-reduced-motion: reduce) { .dialogRoot, .dialogRoot * { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+.thumbnail { width: 48px; height: 48px; flex: 0 0 48px; border: 0; padding: 0; overflow: hidden; border-radius: 7px; background: #edf2f7; cursor: pointer; }
+.thumbnail:focus-visible { outline: 2px solid #1677ff; outline-offset: 2px; }
+.thumbnail:disabled { cursor: default; opacity: .55; }
+:global([data-theme='dark']) .thumbnail { background: #253242; }

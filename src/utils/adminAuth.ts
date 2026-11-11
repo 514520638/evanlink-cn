@@ -1,3 +1,4 @@
+import { clearImageCache } from './imageRequests'
 import { API_ENDPOINTS } from '../config/api'
 
 export const fetchWithAdminCookie = (url: string, options?: RequestInit) => {
@@ -25,6 +26,7 @@ export const loginAdmin = async (payload: { username: string; password: string }
     throw new Error(data.message || '登录失败')
   }
 
+  clearImageCache()
   window.localStorage.removeItem('admin_token')
   return data
 }
@@ -33,13 +35,15 @@ export const logoutAdmin = async () => {
   await fetchWithAdminCookie(API_ENDPOINTS.ADMIN_LOGOUT, {
     method: 'POST',
   })
+  clearImageCache()
   window.localStorage.removeItem('admin_token')
 }
 
 export const verifyAdminSession = async () => {
   const response = await fetchWithAdminCookie(API_ENDPOINTS.ADMIN_PROFILE)
   if (response.status === 401) {
-    window.localStorage.removeItem('admin_token')
+    clearImageCache()
+  window.localStorage.removeItem('admin_token')
     return false
   }
   return response.ok

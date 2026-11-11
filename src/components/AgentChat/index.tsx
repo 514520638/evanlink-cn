@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
 import { PictureOutlined, EditOutlined, DeleteOutlined, ControlOutlined, GlobalOutlined, ArrowLeftOutlined, CommentOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
@@ -240,6 +241,33 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     })
   }
 
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (standalone) return
+    const viewport = window.visualViewport
+    let frame = 0
+    const update = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const button = launcherRef.current
+        if (!button) return
+        button.style.setProperty('--launcher-right', Math.max(0, document.documentElement.clientWidth - ((viewport?.offsetLeft ?? 0) + (viewport?.width ?? window.innerWidth))) + 'px')
+        button.style.setProperty('--launcher-bottom', Math.max(0, window.innerHeight - ((viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight))) + 'px')
+      })
+    }
+    update()
+    viewport?.addEventListener('resize', update)
+    viewport?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    window.addEventListener('pageshow', update)
+    return () => {
+      cancelAnimationFrame(frame)
+      viewport?.removeEventListener('resize', update)
+      viewport?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('pageshow', update)
+    }
+  }, [standalone])
   const pageRef = useRef<HTMLElement>(null)
   const firstInitialize = useRef(initialize)
   useEffect(() => {
@@ -438,9 +466,9 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
   </main>
 
   return <>
-    <Button className={styles.launcher} type="primary" size="large" icon={<CommentOutlined />} onClick={launch} aria-label={tr('打开 AI 聊天', 'Open AI chat')}>
+    {createPortal(<Button ref={launcherRef} className={styles.launcher} type="primary" size="large" icon={<CommentOutlined />} onClick={launch} aria-label={tr('打开 AI 聊天', 'Open AI chat')}>
       {tr('和我聊聊', 'Chat with me')}
-    </Button>
+    </Button>, document.body)}
     <Drawer push={false} rootClassName={styles.chatDrawer} open={open} onClose={() => { setOpen(false); setLoginOpen(false); setPassword('') }} width="min(520px, 100vw)" extra={<a href="/chat">{tr('全屏聊天', 'Full screen')}</a>} title={<div className={styles.heading}>
       <span>{role === 'owner' ? tr('小磊 · 私人助手', 'Xiaolei · Assistant') : tr('Evan · AI 数字分身', 'Evan · AI representative')}</span>
       <Tag color={role === 'owner' ? 'green' : 'blue'}>{role === 'owner' ? tr('本人', 'Owner') : tr('访客', 'Guest')}</Tag>

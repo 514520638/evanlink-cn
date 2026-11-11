@@ -10,3 +10,6 @@
 @media (prefers-reduced-motion: reduce) {
   .frame *, .frame *::before, .frame *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.compact .state { min-height: 0; padding: 0; gap: 0; }
+.compact .state :global(.ant-btn) { width: 32px; height: 32px; }

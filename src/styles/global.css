@@ -489,3 +489,9 @@ body {
   border-color: rgba(0, 0, 0, 0.06);
   color: rgba(0, 0, 0, 0.85);
 }
+
+/* 让宽内容在自身区域滚动，避免撑大文档并挤出固定入口。 */
+html, body, #root { width: 100%; min-width: 0; }
+.markdown-content { min-width: 0; overflow-wrap: anywhere; }
+.markdown-content pre { max-width: 100%; }
+.markdown-content table { display: block; max-width: 100%; overflow-x: auto; }

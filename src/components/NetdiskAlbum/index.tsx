@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Alert, Button, Empty, Modal, Popconfirm, Space, Table, message } from 'antd'
+import { clearImageCache } from '../../utils/imageRequests'
 import { AlbumImage } from '../AlbumImage'
 import styles from './NetdiskAlbum.module.css'
-import { CloudOutlined, FolderOutlined, ReloadOutlined, FileImageOutlined, ArrowLeftOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
+import { CloudOutlined, FolderOutlined, ReloadOutlined, ArrowLeftOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 
 interface Status { configured: boolean; connected: boolean; root: string }
 interface File { id: string; name: string; path: string; folder: boolean; size: number }
@@ -72,7 +73,7 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
         <Space wrap size={4}>
           <Button type={status?.connected ? 'text' : 'primary'} disabled={!status?.configured} loading={busy} onClick={() => void run(async () => { const data = await request<{ url: string }>('/authorize', 'POST'); window.location.assign(data.url) })}>{status?.connected ? '重新授权' : '连接百度网盘'}</Button>
           <Button type="text" icon={<ReloadOutlined />} disabled={busy} onClick={() => void run(refresh)}>刷新</Button>
-          {status?.connected && <Popconfirm title="断开百度网盘？" description="已发布的网盘照片将暂时无法加载，网盘原图不受影响。" onConfirm={() => run(async () => { await request('/connection', 'DELETE'); setPreview(undefined); await refresh() })}><Button type="text" danger disabled={busy}>断开</Button></Popconfirm>}
+          {status?.connected && <Popconfirm title="断开百度网盘？" description="已发布的网盘照片将暂时无法加载，网盘原图不受影响。" onConfirm={() => run(async () => { await request('/connection', 'DELETE'); clearImageCache(); setPreview(undefined); await refresh() })}><Button type="text" danger disabled={busy}>断开</Button></Popconfirm>}
         </Space>
       </div>
       {listing && status && <>
@@ -83,7 +84,7 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
         <Table<File> className={styles.table} size="small" loading={busy} dataSource={listing.items} rowKey="id" pagination={false} tableLayout="fixed" scroll={{ y: 320 }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="此页没有可展示的照片" /> }}
           rowSelection={{ columnWidth: 42, selectedRowKeys: selected, onChange: keys => { if (keys.length > 20) message.info('每次最多选择 20 张照片'); setSelected(keys.slice(0, 20).map(String)) }, getCheckboxProps: file => ({ disabled: busy || file.folder || file.size > 20 * 1024 * 1024 || (selected.length >= 20 && !selected.includes(file.id)) }) }}
           columns={[
-            { title: '照片 / 文件夹', dataIndex: 'name', ellipsis: true, render: (_, file) => file.folder ? <button className={styles.folder} disabled={busy} onClick={() => void run(() => browse(file.path))}><span className={styles.filename}><FolderOutlined /><span title={file.name}>{file.name}</span></span></button> : <div className={styles.filename}><FileImageOutlined /><span title={file.name}>{file.name}</span></div> },
+            { title: '照片 / 文件夹', dataIndex: 'name', ellipsis: true, render: (_, file) => file.folder ? <button className={styles.folder} disabled={busy} onClick={() => void run(() => browse(file.path))}><span className={styles.filename}><FolderOutlined /><span title={file.name}>{file.name}</span></span></button> : <div className={styles.filename}><div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setPreview(file) } }} className={styles.thumbnail} aria-label={`预览照片：${file.name}`} onClick={() => { if (!busy && file.size <= 20 * 1024 * 1024) setPreview(file) }}><AlbumImage compact preview={false} contentType={/\.(heic|heif)$/i.test(file.name) ? 'image/heic' : undefined} src={`/api/album/baidu/media/${encodeURIComponent(file.id)}?variant=thumb`} alt={file.name} /></div><span title={file.name}>{file.name}</span></div> },
             { title: '大小', width: 96, responsive: ['sm'], render: (_, file) => file.folder ? '—' : `${(file.size / 1024 / 1024).toFixed(1)} MB` },
             { title: '操作', width: 76, render: (_, file) => !file.folder && <Button type="link" size="small" disabled={busy || file.size > 20 * 1024 * 1024} onClick={() => setPreview(file)}>预览</Button> },
           ]} />

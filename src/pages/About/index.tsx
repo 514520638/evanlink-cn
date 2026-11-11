@@ -29,7 +29,7 @@ import {
 import { API_ENDPOINTS } from '../../config/api'
 import styles from './About.module.css'
 import { useAppSelector } from '../../store/hooks'
-import { useIdleImagePreload } from '../../hooks/useIdleImagePreload'
+import { useManagedImage } from '../../hooks/useManagedImage'
 import { loginAdmin } from '../../utils/adminAuth'
 
 const { Title, Paragraph } = Typography
@@ -62,7 +62,8 @@ export const About: React.FC = () => {
   const [skillsData, setSkillsData] = useState<SkillCategory[]>([])
 
   const isZh = i18n.language === 'zh'
-  useIdleImagePreload(userInfo?.wechat)
+  const avatarSrc = useManagedImage(userInfo?.avatar)
+  const wechatSrc = useManagedImage(userInfo?.wechat, wechatModalOpen)
 
   // 请求skills数据
   useEffect(() => {
@@ -250,7 +251,7 @@ export const About: React.FC = () => {
   return (
     <div className={styles.about}>
       <div className={styles.header}>
-        <Avatar src={userInfo?.avatar} size={160} className={styles.avatar} />
+        <Avatar src={avatarSrc} size={160} className={styles.avatar} />
         <Title level={1}>{t('about.title')}</Title>
         <Paragraph className={styles.subtitle}>{t('about.subtitle')}</Paragraph>
       </div>
@@ -351,7 +352,7 @@ export const About: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           {userInfo?.wechat ? (
             <img
-              src={userInfo.wechat}
+              src={wechatSrc}
               alt="WeChat QR Code"
               style={{ maxWidth: '200px', borderRadius: '8px' }}
             />

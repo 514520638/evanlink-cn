@@ -11,3 +11,5 @@
 HEIC/HEIF 在目录中可选择，预览委托 AlbumImage；常规格式不需要加载解码器。
 
 界面：NetdiskAlbum.module.css 控制蓝色工具栏、连接状态、目录表格和分页选择栏。独立预览 Modal 使用 AlbumImage 的 contain 模式及 eager 加载，不在表格中追加原图；支持前后切图、方向键及选择当前照片。列表和预览共享选择状态，每次最多 20 张。
+
+文件行内新增 48px 小图，优先请求 variant=thumb。关闭弹窗后释放未完成的订阅；点击缩略图或预览按钮打开原有大图面板。

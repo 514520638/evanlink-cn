@@ -174,3 +174,7 @@
 [data-theme='dark'] .moreLink :global(.ant-btn-link:hover) {
   color: #40a9ff;
 }
+
+.heroContent, .heroDecoration { min-width: 0; }
+.heroButtons { flex-wrap: wrap; }
+.codePreview { max-width: 100%; overflow: auto; }

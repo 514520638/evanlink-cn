@@ -196,3 +196,18 @@
   background: rgba(24, 144, 255, 0.2) !important;
   color: #40a9ff !important;
 }
+
+.logo { min-width: 0; }
+.logoText { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 768px) {
+  .header { padding-inline: 12px; }
+  .container { gap: 8px; }
+  .leftSection { gap: 8px; }
+  .logo { gap: 8px; }
+  .logoText { max-width: 100px; }
+  .rightSection :global(.ant-space) { gap: 4px !important; }
+}
+@media (max-width: 480px) {
+  .rightSection .socialLink { display: none; }
+  .logoText { max-width: 80px; }
+}

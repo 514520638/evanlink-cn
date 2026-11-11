@@ -1,3 +1,4 @@
+import { clearImageCache } from '../utils/imageRequests'
 import { API_ENDPOINTS } from '../config/api'
 import type { AlbumPhoto } from '../types'
 import { loginAdmin, verifyAdminSession } from '../utils/adminAuth'
@@ -51,6 +52,7 @@ export const deleteAlbumPhoto = async (id: number) => {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, '删除照片失败'))
   }
+  clearImageCache()
 }
 
 export const loginForAlbumManage = async (payload: { username: string; password: string }) => {

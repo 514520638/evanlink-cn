@@ -14,7 +14,7 @@ import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
 import styles from './Header.module.css'
 import { useAppSelector } from '../../store/hooks'
-import { useIdleImagePreload } from '../../hooks/useIdleImagePreload'
+import { useManagedImage } from '../../hooks/useManagedImage'
 
 const { Header: AntHeader } = Layout
 interface HeaderProps {
@@ -32,7 +32,8 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
   const [isMobile, setIsMobile] = useState(false)
   const [wechatModalOpen, setWechatModalOpen] = useState(false)
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
-  useIdleImagePreload(userInfo?.wechat)
+  const avatarSrc = useManagedImage(userInfo?.avatar)
+  const wechatSrc = useManagedImage(userInfo?.wechat, wechatModalOpen)
 
   // 检测是否为移动端
   useEffect(() => {
@@ -102,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
           />
 
           <Link to="/" className={styles.logo}>
-            <Avatar size={36} src={userInfo?.avatar} style={{ backgroundColor: '#1890ff' }}>
+            <Avatar size={36} src={avatarSrc} style={{ backgroundColor: '#1890ff' }}>
               {userInfo?.nameEn?.charAt(0)}
             </Avatar>
             <span className={styles.logoText}>
@@ -189,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           {userInfo?.wechat ? (
             <img
-              src={userInfo?.wechat}
+              src={wechatSrc}
               alt="WeChat QR Code"
               style={{ maxWidth: '200px', borderRadius: '8px' }}
             />

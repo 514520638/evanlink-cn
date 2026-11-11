@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Layout, Modal } from 'antd'
 import { GithubOutlined, MailOutlined, WechatOutlined, PhoneOutlined } from '@ant-design/icons'
 import styles from './Footer.module.css'
+import { useManagedImage } from '../../hooks/useManagedImage'
 import { useAppSelector } from '../../store/hooks'
 
 const { Footer: AntFooter } = Layout
@@ -12,6 +13,8 @@ export const Footer: React.FC = () => {
   const isZh = i18n.language === 'zh'
   const userInfo = useAppSelector((state) => state.userInfo.userInfo)
   const [wechatModalOpen, setWechatModalOpen] = useState(false)
+
+  const wechatSrc = useManagedImage(userInfo?.wechat, wechatModalOpen)
 
   const currentYear = new Date().getFullYear()
 
@@ -90,7 +93,7 @@ export const Footer: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             {userInfo?.wechat ? (
               <img
-                src={userInfo.wechat}
+                src={wechatSrc}
                 alt="WeChat QR Code"
                 style={{ maxWidth: '200px', borderRadius: '8px' }}
               />
