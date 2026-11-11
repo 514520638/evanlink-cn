@@ -1,0 +1,12 @@
+.frame { position: relative; width: 100%; height: 100%; min-width: 0; overflow: hidden; }
+.frame :global(.ant-image) { display: block; width: 100%; height: 100%; }
+.frame :global(.ant-image-img) { display: block; width: 100%; height: 100%; object-fit: cover; }
+.contain :global(.ant-image-img) { object-fit: contain; }
+.frame:focus-visible { outline: 3px solid #1677ff; outline-offset: -3px; }
+.state { display: flex; width: 100%; height: 100%; min-height: 120px; align-items: center; justify-content: center; flex-direction: column; gap: 12px; padding: 24px; text-align: center; background: #f0f4f9; }
+.state :global(.ant-typography) { color: #64748b; font-size: 13px; line-height: 1.6; }
+:global([data-theme='dark']) .state { background: #202732; }
+:global([data-theme='dark']) .state :global(.ant-typography) { color: #a9b7c9; }
+@media (prefers-reduced-motion: reduce) {
+  .frame *, .frame *::before, .frame *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

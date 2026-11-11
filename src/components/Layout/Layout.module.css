@@ -1,0 +1,21 @@
+.layout {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #000000;
+}
+
+:root[data-theme='dark'] .layout {
+  background: #141414;
+  color: #ffffff;
+}
+
+.content {
+  min-height: calc(100vh - 64px - 200px);
+  padding-top: 64px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}

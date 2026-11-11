@@ -1,0 +1,3 @@
+heic-to 1.6.7, LGPL-3.0
+Source: https://github.com/hoppergee/heic-to/tree/v1.6.7
+Used in a separate browser Worker for HEIC/HEIF preview.

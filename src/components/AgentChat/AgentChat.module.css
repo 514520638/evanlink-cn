@@ -1,0 +1,236 @@
+.launcher { position: fixed; right: 24px; bottom: 24px; z-index: 900; height: 48px; border-radius: 24px; box-shadow: 0 6px 24px rgb(0 0 0 / 16%); }
+.heading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px; border-bottom: 1px solid #e5e7eb; }
+.chatSelect { flex: 1; min-width: 100px; }
+.login { padding: 16px; border-bottom: 1px solid #e5e7eb; }
+.login > label { display: block; margin-bottom: 8px; font-weight: 600; }
+.row { display: flex; gap: 8px; }
+.alerts { padding: 0 16px; }
+.alerts > * { margin-top: 12px; }
+.timeline { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px; }
+.empty { text-align: center; padding: 40px 8px; }
+.emptyIcon { font-size: 38px; color: #1677ff; margin-bottom: 20px; }
+.empty h2 { font-size: 22px; margin-bottom: 12px; font-weight: 650; }
+.empty p { color: #596273; line-height: 1.8; max-width: 340px; margin: 0 auto 22px; }
+.message { margin-bottom: 24px; overflow-wrap: anywhere; }
+.speaker { font-size: 12px; font-weight: 600; color: #596273; margin-bottom: 8px; }
+.user { margin-left: 44px; padding: 12px 16px; background: #edf5ff; border-radius: 14px; }
+.assistant { padding-right: 16px; }
+.markdown { font-size: 14px; line-height: 1.8; }
+.markdown p { margin-bottom: 10px; }
+.markdown p:last-child { margin-bottom: 0; }
+.markdown ul, .markdown ol { padding-left: 22px; }
+.markdown pre { overflow-x: auto; background: #f3f4f6; padding: 12px; border-radius: 8px; }
+.markdown code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.markdown table { display: block; overflow: auto; max-width: 100%; border-collapse: collapse; }
+.markdown td, .markdown th { border: 1px solid #d9dfe7; padding: 6px 10px; }
+.markdown a { text-underline-offset: 3px; }
+.muted { font-size: 12px; color: #596273; line-height: 1.7; margin-top: 8px; }
+.composer { padding: 14px 16px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e5e7eb; }
+.composerFooter { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.review { border-top: 1px solid #d9dfe7; padding-top: 22px; margin-top: 24px; }
+.review h2 { font-size: 20px; margin-bottom: 8px; }
+.reviewItem { border: 0; border-bottom: 1px solid #e5e7eb; margin: 24px 0 16px; padding: 0 0 20px; min-width: 0; }
+.reviewItem legend { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.reviewItem > label { display: block; margin-bottom: 8px; }
+.recordId { font-size: 11px; color: #596273; overflow-wrap: anywhere; margin-bottom: 12px; }
+.fieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.fieldGrid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.extraFields { margin-top: 8px; }
+.publicNotice { font-size: 12px; color: #8a4b08; background: #fff7e6; padding: 10px 12px; border-radius: 8px; margin: 12px 0; }
+.reviewActions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+.preview { font-size: 13px; margin: 12px 0; }
+.preview summary { cursor: pointer; padding: 8px 0; }
+.preview pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; line-height: 1.7; padding: 10px 0; }
+:global([data-theme='dark']) .toolbar, :global([data-theme='dark']) .login, :global([data-theme='dark']) .composer, :global([data-theme='dark']) .review, :global([data-theme='dark']) .reviewItem { border-color: #353b46; }
+:global([data-theme='dark']) .muted, :global([data-theme='dark']) .speaker, :global([data-theme='dark']) .empty p, :global([data-theme='dark']) .recordId { color: #aeb7c7; }
+:global([data-theme='dark']) .user { background: #142a45; }
+:global([data-theme='dark']) .markdown pre { background: #252930; }
+:global([data-theme='dark']) .markdown td, :global([data-theme='dark']) .markdown th { border-color: #454b56; }
+:global([data-theme='dark']) .publicNotice { background: #392b16; color: #f0c37a; }
+@media (max-width: 480px) {
+  .launcher { right: 16px; bottom: 16px; }
+  .toolbar { gap: 6px; padding: 12px; flex-wrap: wrap; }
+  .timeline { padding: 16px; }
+  .composer { padding: 12px; }
+  .composerFooter .muted { font-size: 10px; }
+  .user { margin-left: 24px; }
+}
+
+
+/* 对话以雾蓝、深海蓝和博客主题蓝作为身份与操作提示，两种入口共用动效。 */
+.toolbar[hidden] { display: none; }
+.emblem { width: 92px; height: 92px; color: #1677cf; margin: 0 auto 20px; }
+.emblem svg, .brandMark svg { display: block; width: 100%; height: 100%; }
+.activity { display: flex; align-items: center; gap: 11px; margin: 0 0 24px; width: fit-content; padding: 10px 14px; border-radius: 20px; background: #e7f3ff; color: #105990; font-size: 13px; }
+.wave { display: inline-flex; height: 19px; align-items: center; gap: 3px; }
+.wave i { display: block; width: 3px; height: 13px; border-radius: 3px; background: currentColor; animation: listen 1.1s ease-in-out infinite alternate; }
+.wave i:nth-child(2n) { animation-delay: -.35s; }
+.wave i:nth-child(3n) { animation-delay: -.7s; }
+.scan { position: relative; width: 24px; height: 24px; display: grid; place-items: center; font-size: 16px; }
+.scan::after { content: ''; position: absolute; inset: 0; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: scan 1.3s linear infinite; }
+.writing .markdown::after { content: ''; display: inline-block; width: 7px; height: 12px; border-radius: 2px; background: #1890ff; animation: breathe .9s ease-in-out infinite alternate; }
+@keyframes listen { from { transform: scaleY(.28); } to { transform: scaleY(1.2); } }
+@keyframes scan { to { transform: rotate(360deg); } }
+@keyframes breathe { to { opacity: .25; } }
+@keyframes arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.page { --paper: #f6faff; --ink: #152e47; --muted: #52687d; --accent: #1269ad; --surface: #fff; --line: #ccddeb; --tint: #dfefff; height: 100vh; height: var(--chat-height, 100dvh); color: var(--ink); background: #e4eff8; }
+.pageInner { height: 100%; width: min(100%, 820px); margin: auto; display: flex; flex-direction: column; background: var(--paper); min-width: 0; }
+.pageHeader { display: flex; justify-content: space-between; align-items: center; flex: none; gap: 8px; padding: max(15px,env(safe-area-inset-top)) clamp(14px,4vw,34px) 15px; color: #f5fbff; background: #123b60; }
+.identity, .pageNav { display: flex; align-items: center; gap: 12px; }
+.brandMark { display: block; width: 43px; height: 43px; color: #b6dfff; }
+.identity h1 { margin: 0; color: inherit; font: 600 24px/1.1 Georgia,serif; }
+.identity div > span { color: #c1ddf1; font-size: 12px; }
+.pageNav { gap: 4px; }
+.pageNav button, .pageNav a { background: transparent; border: 0; color: #f0f8ff; font: inherit; font-size: 13px; cursor: pointer; padding: 11px 9px; border-radius: 8px; text-decoration: none; }
+.pageNav button[aria-expanded=true], .pageNav button:hover, .pageNav a:hover { background: #265577; }
+.page :focus-visible { outline: 2px solid #1890ff; outline-offset: 2px; }
+.page .toolbar, .page .login { background: var(--surface); border-color: var(--line); }
+.page .timeline { padding: 24px clamp(16px,5vw,44px); }
+.page .empty { padding: clamp(18px,9vh,95px) 0 12px; text-align: left; max-width: 530px; margin: auto; }
+.page .empty .emblem { width: clamp(82px,17vh,145px); height: auto; margin: 0 0 20px; color: var(--accent); }
+.page .empty h2 { color: var(--ink); font-size: clamp(26px,4.3vw,39px); line-height: 1.3; font-weight: 650; }
+.page .empty p { margin: 0; max-width: 36em; color: var(--muted); font-size: 15px; }
+.message { animation: arrive .22s ease-out; }
+.page .assistant { padding: 4px 0 4px 0; }
+.page .speaker { color: var(--accent); font-size: 12px; letter-spacing: .025em; }
+.page .user { width: fit-content; max-width: 85%; margin-left: auto; border-radius: 16px 16px 4px 16px; background: var(--tint); }
+.page .markdown { font-size: 16px; line-height: 1.85; }
+.page .markdown a { color: var(--accent); }
+.page .composer { margin: 0 clamp(10px,3vw,26px) max(10px,env(safe-area-inset-bottom)); padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.page .composer:focus-within { border-color: var(--accent); }
+.page .composer textarea { font-size: 16px; background: transparent; color: var(--ink); border: 0; box-shadow: none; }
+.page .login input { font-size: 16px; }
+.page .composerFooter { margin-top: 2px; }
+.page .composerFooter .muted { color: var(--muted); margin: 0; }
+.page .composerFooter :global(.ant-btn-primary:not(:disabled)) { background: var(--accent); color: var(--surface); }
+:global([data-theme='dark']) .page { --paper: #111e2a; --ink: #e9f4ff; --muted: #afc8da; --accent: #83c8ff; --surface: #162a3b; --line: #344e63; --tint: #1b3a54; background: #0c1823; }
+:global([data-theme='dark']) .activity { background: #193c56; color: #b3e0ff; }
+@media (max-height: 550px) {
+  .pageHeader { padding-block: 4px; }
+  .page .toolbar, .page .composer { padding-block: 5px; }
+  .page .empty { padding-top: 12px; }
+  .page .emblem { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message, .wave i, .scan::after, .writing .markdown::after { animation: none; }
+}
+
+/* 只在新插入的流式文本节点上播放一次，不给整条消息添加滤镜。 */
+.reveal { animation: revealInk 280ms cubic-bezier(.18,.72,.25,1) backwards; }
+@keyframes revealInk {
+  from { opacity: .24; filter: blur(2.4px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+}
+
+/* 保留用户输入的换行和空行；助手 Markdown 段落中的软换行也可见。 */
+.userText { white-space: pre-wrap; overflow-wrap: anywhere; }
+.assistant .markdown p { white-space: pre-line; }
+.touchHint { display: none; }
+.viewportLock, .viewportLock body { overflow: hidden; overscroll-behavior: none; }
+.viewportLock { background-color: #fff; }
+:global([data-theme='dark']).viewportLock { background-color: #101f2d; }
+.viewportLock .page { position: fixed; inset-inline: 0; top: var(--chat-top, 0px); overflow: hidden; }
+/* 博客全局 Ant 输入主题使用 important，这里仅覆盖聊天输入框。 */
+:global([data-theme]) .composer textarea:global(.ant-input) {
+  background: transparent !important; border-color: transparent !important;
+  color: var(--ink) !important; caret-color: var(--accent); box-shadow: none !important;
+}
+:global([data-theme]) .composer textarea:global(.ant-input)::placeholder { color: var(--muted) !important; opacity: .85; }
+@media (pointer: coarse) {
+  .desktopHint { display: none; }
+  .touchHint { display: inline; }
+}
+
+.manager { display: grid; gap: 20px; }
+.chatList { display: grid; gap: 5px; }
+.chatList button, .chatSwitcher { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 0; border-radius: 10px; color: inherit; background: transparent; cursor: pointer; text-align: left; font: inherit; }
+.chatList button span:nth-child(2), .chatSwitcher span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatList button[aria-current=true], .chatList button:hover { background: #e2f2ff; color: #115687; }
+.chatList small { font-variant-numeric: tabular-nums; }
+.manageActions { border-block: 1px solid #b3c4d166; padding: 14px 0; }
+.manageActions strong { display: block; overflow-wrap: anywhere; margin: 0 0 10px; }
+.manageActions form { display: flex; gap: 4px; margin-bottom: 8px; }
+.accountTools { display: flex; flex-wrap: wrap; gap: 8px; }
+.chatSwitcher { border-radius: 0; border-bottom: 1px solid #b3c4d166; }
+.pageHeader .identity { min-width: 0; }
+.pageHeader .identity > div { min-width: 0; }
+.pageHeader .identity h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pageNav, .brandMark { flex-shrink: 0; }
+.page .composer { box-shadow: 0 5px 20px #1539550c; }
+:global([data-theme='dark']) .chatList button[aria-current=true], :global([data-theme='dark']) .chatList button:hover { background: #213e53; color: #c4e5ff; }
+
+/* 对话以清晰的签名、正文和回信框为层次，抽屉与独立页使用同一种排版。 */
+.page, .chatDrawer, .manager {
+  --ink: #192f44; --accent: #146abb; --muted: #556e84;
+  --paper: #fff; --line: #d6e1eb; --surface: #fff; --tint: #eaf4ff;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.page { background: #eef4f9; }
+.pageInner { width: min(100%, 880px); box-shadow: 0 0 0 1px var(--line); }
+.pageHeader { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--line); padding-inline: clamp(16px, 4vw, 42px); }
+.identity { gap: 10px; }
+.identity h1 { font: 650 clamp(19px, 3vw, 24px)/1.25 inherit; font-family: inherit; font-weight: 650; }
+.identity div > span { color: var(--muted); }
+.pageNav a, .pageNav button { color: var(--muted); min-height: 42px; display: inline-flex; align-items: center; gap: 6px; }
+.pageNav button { background: var(--tint); color: var(--accent); }
+.pageNav button:hover, .pageNav a:hover, .pageNav button[aria-expanded=true] { color: var(--accent); background: var(--tint); }
+.page .empty, .chatDrawer .empty { max-width: 580px; margin: auto; text-align: left; padding: clamp(18px, 10vh, 100px) 0 16px; }
+.page .empty .emblem, .chatDrawer .emblem { position: relative; width: 176px; height: 78px; margin: 0 0 24px; }
+.empty .emblem > svg:last-child { position: absolute; width: 76px; height: 76px; right: 0; top: -10px; }
+.empty .emblem .trail { width: 152px; height: 56px; position: absolute; bottom: 0; left: 0; color: #7bbaff; }
+.page .empty h2, .chatDrawer .empty h2 { color: var(--ink); font-family: Georgia, "Songti SC", "STSong", serif; font-weight: 600; line-height: 1.25; font-size: clamp(29px,5vw,44px); margin-bottom: 14px; }
+.empty p { color: var(--muted); line-height: 1.85; }
+.message { animation: none; margin-bottom: 28px; }
+.assistant .speaker { display: inline-flex; gap: 6px; align-items: center; color: var(--accent); font-size: 13px; margin-bottom: 9px; }
+.speaker svg { width: 22px; height: 22px; }
+.markdown, .page .markdown { font-size: 16px; line-height: 1.85; color: var(--ink); }
+.assistant .markdown { max-width: 68ch; }
+.markdown :is(h1,h2,h3,h4) { font-size: 1.13em; line-height: 1.5; margin: 1em 0 .45em; }
+.markdown > :first-child { margin-top: 0; }
+.markdown p + p { margin-top: .7em; }
+.markdown li + li { margin-top: .25em; }
+.user, .page .user { margin-left: auto; width: fit-content; max-width: 87%; padding: 9px 15px; background: var(--tint); border-radius: 17px 17px 4px 17px; }
+.page .timeline { padding-inline: clamp(16px, 6vw, 64px); }
+.composer, .page .composer {
+  position: relative; margin: 4px clamp(10px,3vw,28px) max(10px,env(safe-area-inset-bottom)); padding: 14px 60px 10px 16px;
+  border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: 0 4px 18px #123b6012;
+}
+.composer:focus-within, .page .composer:focus-within { border-color: #3497ee; box-shadow: 0 0 0 3px #1890ff16; }
+.composer textarea { padding: 0; font: inherit; font-size: 16px; line-height: 1.65; border: 0; background: transparent; box-shadow: none !important; }
+.composerFooter { margin-top: 4px; }
+.composerFooter .muted { margin: 0; font-size: 11px; color: var(--muted); }
+.composer .sendControl { position: absolute; right: 9px; bottom: 9px; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; }
+.composer .sendControl:disabled { background: var(--tint); color: var(--muted); border-color: transparent; }
+.page button, .chatDrawer button, .manager button { transition: background-color 150ms, transform 120ms ease-out; }
+@media (pointer: fine) {
+  .page button:active:not(:disabled):not(:focus-visible), .chatDrawer button:active:not(:disabled):not(:focus-visible), .manager button:active:not(:disabled):not(:focus-visible) { transform: scale(.96); }
+}
+.manager .chatList button { min-height: 44px; }
+.manager .chatList small { color: var(--muted); }
+.manager .manageActions { border-top-color: var(--line); }
+.chatSwitcher { color: var(--accent); border-bottom-color: var(--line); }
+:global([data-theme='dark']) :is(.page,.chatDrawer,.manager) { --paper:#101f2d; --ink:#e4f1ff; --muted:#abc1d4; --accent:#8ccaff; --line:#364f64; --surface:#152838; --tint:#203d55; }
+@media (max-height:550px) {
+  .page .empty .emblem { display: none; }
+  .page .empty { padding-block: 10px; }
+  .pageHeader { padding-block: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page button, .chatDrawer button, .manager button { transition: none; }
+  .page button:active, .chatDrawer button:active, .manager button:active { transform: none !important; }
+}
+
+.accountSection h3 { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 12px; }
+.accountLogin { margin-top: 16px; padding: 16px; background: var(--tint); border-radius: 12px; }
+.accountLogin > label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.accountLogin .row { flex-direction: column; gap: 10px; }
+.accountLogin .row > button { width: 100%; min-height: 40px; }
+.accountLogin :global(input) { font-size: 16px; }
+.manageActions > :global(button) { display: flex; align-items: center; width: 100%; min-height: 40px; text-align: left; }
+
+.imagePreview { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.imagePreview img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
