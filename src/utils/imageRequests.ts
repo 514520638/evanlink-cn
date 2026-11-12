@@ -1,11 +1,14 @@
-// 所有受管图片共享两个网络槽；同一地址合并请求，短时缓存限制在 24MB。
+// 普通网络共享三个网络槽，省流量或慢速网络使用两个；同一地址合并请求，短时缓存限制在 24MB。
 type ImageValue = Blob | string
 const pending = new Map<string, { controller: AbortController; promise: Promise<ImageValue>; users: number }>()
 const cache = new Map<string, { value: ImageValue; bytes: number; expires: number }>()
 let cacheBytes = 0
 let active = 0
 const jobs: (() => void)[] = []
-function pump() { while (active < 2 && jobs.length) jobs.shift()!() }
+function pump() {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+  const limit = connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType || '') ? 2 : 3
+  while (active < limit && jobs.length) jobs.shift()!() }
 function schedule<T>(task: () => Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => { jobs.push(() => { active++; task().then(resolve, reject).finally(() => { active--; pump() }) }); pump() })
 }

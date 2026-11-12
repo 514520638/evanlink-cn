@@ -3,6 +3,7 @@ import { Button, Empty, Form, Image, Input, message, Modal, Popconfirm, Spin, Ty
 import type { UploadFile } from 'antd'
 import {
   DeleteOutlined,
+  EyeInvisibleOutlined,
   InboxOutlined,
   LoginOutlined,
   PlusOutlined,
@@ -10,6 +11,7 @@ import {
 } from '@ant-design/icons'
 import {
   deleteAlbumPhoto,
+  unpublishAlbumPhoto,
   fetchAlbumPhotos,
   loginForAlbumManage,
   uploadAlbumPhoto,
@@ -278,6 +280,9 @@ export const Album: React.FC = () => {
                     )}
                   </div>
                   <div className={styles.photoMeta}>
+                    {isAuthed && photo.baiduFileId && <Popconfirm title="取消发布这张照片？" description="访客将无法查看，网盘原图保留，可在网盘面板重新发布。" onConfirm={async () => {
+                      try { await unpublishAlbumPhoto(photo.baiduFileId!); await loadPhotos(); message.success('已取消发布，网盘原图保留') } catch (error) { message.error(error instanceof Error ? error.message : '取消发布失败') }
+                    }}><Button type="text" size="small" style={{ float: 'right' }} icon={<EyeInvisibleOutlined />} aria-label="取消发布照片" /></Popconfirm>}
                     <h3 className={styles.photoTitle} title={photo.title || photo.originalName || '未命名照片'}>{photo.title || photo.originalName || '未命名照片'}</h3>
                     <p className={styles.photoDescription}>
                       {photo.description || new Date(photo.createdAt).toLocaleDateString()}

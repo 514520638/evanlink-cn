@@ -62,3 +62,9 @@ export const loginForAlbumManage = async (payload: { username: string; password:
 export const verifyAlbumManageAuth = async () => {
   return verifyAdminSession()
 }
+
+export const unpublishAlbumPhoto = async (id: string) => {
+  const response = await fetch('/api/album/baidu/unpublish', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-Netdisk-Request': '1' }, body: JSON.stringify({ ids: [id] }) })
+  if (!response.ok) throw new Error(await readErrorMessage(response, '取消发布失败'))
+  clearImageCache()
+}

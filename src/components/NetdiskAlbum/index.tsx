@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Empty, Modal, Popconfirm, Space, Table, message } from 'antd'
+import { Alert, Button, Empty, Modal, Popconfirm, Space, Table, Tag, message } from 'antd'
 import { clearImageCache } from '../../utils/imageRequests'
 import { AlbumImage } from '../AlbumImage'
 import styles from './NetdiskAlbum.module.css'
 import { CloudOutlined, FolderOutlined, ReloadOutlined, ArrowLeftOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 
 interface Status { configured: boolean; connected: boolean; root: string }
-interface File { id: string; name: string; path: string; folder: boolean; size: number }
+interface File { id: string; name: string; path: string; folder: boolean; size: number; published: boolean }
 interface Listing { items: File[]; path: string; page: number; hasMore: boolean }
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const res = await fetch(`/api/album/baidu${path}`, {
@@ -51,7 +51,7 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
     return () => window.removeEventListener('keydown', onKey)
   }, [preview, previewIndex, listing])
   const togglePhoto = () => {
-    if (!preview) return
+    if (!preview || preview.published) return
     setSelected(current => current.includes(preview.id) ? current.filter(id => id !== preview.id) : [...current, preview.id])
   }
   return <>
@@ -60,7 +60,7 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
       footer={listing && status ? <div className={styles.footer}>
         <Space size={6}><Button aria-label="上一页" icon={<LeftOutlined />} disabled={busy || listing.page <= 1} onClick={() => void run(() => browse(listing.path, listing.page - 1))} /><span className={styles.selection}>第 {listing.page} 页</span><Button aria-label="下一页" icon={<RightOutlined />} disabled={busy || !listing.hasMore} onClick={() => void run(() => browse(listing.path, listing.page + 1))} /></Space>
         <Space wrap><span className={styles.selection}>已选 {selected.length} / 20 张</span>{selected.length > 0 && <Button type="text" disabled={busy} onClick={() => setSelected([])}>清空</Button>}
-          <Popconfirm title={`将 ${selected.length} 张照片公开到博客？`} description="访客将能够查看这些照片。" disabled={!selected.length || selected.length > 20} onConfirm={() => run(async () => { await request('/publish', 'POST', { ids: selected }); setSelected([]); message.success('已发布到博客相册'); onPublished() })}>
+          <Popconfirm title={`将 ${selected.length} 张照片公开到博客？`} description="访客将能够查看这些照片。" disabled={!selected.length || selected.length > 20} onConfirm={() => run(async () => { await request('/publish', 'POST', { ids: selected }); clearImageCache(); await browse(listing.path, listing.page); message.success('已发布到博客相册'); onPublished() })}>
             <Button type="primary" loading={busy} disabled={!selected.length || selected.length > 20}>发布到相册</Button>
           </Popconfirm>
         </Space>
@@ -82,11 +82,12 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
           <FolderOutlined /><span className={styles.path} title={listing.path}>{listing.path}</span>
         </div>
         <Table<File> className={styles.table} size="small" loading={busy} dataSource={listing.items} rowKey="id" pagination={false} tableLayout="fixed" scroll={{ y: 320 }} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="此页没有可展示的照片" /> }}
-          rowSelection={{ columnWidth: 42, selectedRowKeys: selected, onChange: keys => { if (keys.length > 20) message.info('每次最多选择 20 张照片'); setSelected(keys.slice(0, 20).map(String)) }, getCheckboxProps: file => ({ disabled: busy || file.folder || file.size > 20 * 1024 * 1024 || (selected.length >= 20 && !selected.includes(file.id)) }) }}
+          rowSelection={{ columnWidth: 42, selectedRowKeys: selected, onChange: keys => { if (keys.length > 20) message.info('每次最多选择 20 张照片'); setSelected(keys.slice(0, 20).map(String)) }, getCheckboxProps: file => ({ disabled: busy || file.folder || file.published || file.size > 20 * 1024 * 1024 || (selected.length >= 20 && !selected.includes(file.id)) }) }}
           columns={[
             { title: '照片 / 文件夹', dataIndex: 'name', ellipsis: true, render: (_, file) => file.folder ? <button className={styles.folder} disabled={busy} onClick={() => void run(() => browse(file.path))}><span className={styles.filename}><FolderOutlined /><span title={file.name}>{file.name}</span></span></button> : <div className={styles.filename}><div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setPreview(file) } }} className={styles.thumbnail} aria-label={`预览照片：${file.name}`} onClick={() => { if (!busy && file.size <= 20 * 1024 * 1024) setPreview(file) }}><AlbumImage compact preview={false} contentType={/\.(heic|heif)$/i.test(file.name) ? 'image/heic' : undefined} src={`/api/album/baidu/media/${encodeURIComponent(file.id)}?variant=thumb`} alt={file.name} /></div><span title={file.name}>{file.name}</span></div> },
+            { title: '是否公开', width: 88, render: (_, file) => file.folder ? '—' : <Tag color={file.published ? 'blue' : undefined}>{file.published ? '已公开' : '未公开'}</Tag> },
             { title: '大小', width: 96, responsive: ['sm'], render: (_, file) => file.folder ? '—' : `${(file.size / 1024 / 1024).toFixed(1)} MB` },
-            { title: '操作', width: 76, render: (_, file) => !file.folder && <Button type="link" size="small" disabled={busy || file.size > 20 * 1024 * 1024} onClick={() => setPreview(file)}>预览</Button> },
+            { title: '操作', width: 100, render: (_, file) => !file.folder && <Space direction="vertical" size={0}><Button type="link" size="small" disabled={busy || file.size > 20 * 1024 * 1024} onClick={() => setPreview(file)}>预览</Button>{file.published && <Popconfirm title="取消发布这张照片？" description="访客将无法查看，网盘原文件保留。" onConfirm={() => run(async () => { await request('/unpublish', 'POST', { ids: [file.id] }); clearImageCache(); await browse(listing!.path, listing!.page); onPublished(); message.success('已取消发布，原文件保留') })}><Button type="text" size="small" disabled={busy}>取消发布</Button></Popconfirm>}</Space> },
           ]} />
       </>}
     </Modal>
@@ -94,7 +95,7 @@ export function NetdiskAlbum({ open, onClose, onPublished }: { open: boolean; on
       open={open && Boolean(preview)} onCancel={() => setPreview(undefined)} centered width={1000} zIndex={1100} destroyOnClose
       footer={<div className={styles.previewFooter}>
         <Space><Button icon={<LeftOutlined />} disabled={previewIndex <= 0} onClick={() => setPreview(previewable[previewIndex - 1])}>上一张</Button><span className={styles.previewMeta}>{previewIndex + 1} / {previewable.length}</span><Button icon={<RightOutlined />} disabled={previewIndex >= previewable.length - 1} onClick={() => setPreview(previewable[previewIndex + 1])}>下一张</Button></Space>
-        <Space><span className={styles.previewMeta}>{preview ? `${(preview.size / 1024 / 1024).toFixed(1)} MB` : ''}</span><Button type={preview && selected.includes(preview.id) ? 'default' : 'primary'} disabled={!preview || (!selected.includes(preview.id) && selected.length >= 20)} onClick={togglePhoto}>{preview && selected.includes(preview.id) ? '取消选择' : '选择这张'}</Button></Space>
+        <Space><span className={styles.previewMeta}>{preview ? `${/\.livp$/i.test(preview.name) ? 'LIVP 静态照片 · ' : ''}${(preview.size / 1024 / 1024).toFixed(1)} MB` : ''}</span><Button type={preview && selected.includes(preview.id) ? 'default' : 'primary'} disabled={!preview || preview.published || (!selected.includes(preview.id) && selected.length >= 20)} onClick={togglePhoto}>{preview?.published ? '已公开' : preview && selected.includes(preview.id) ? '取消选择' : '选择这张'}</Button></Space>
       </div>}>
       <div className={styles.previewStage}>
         {preview && <AlbumImage key={preview.id} eager fit="contain" preview={false} contentType={/\.(heic|heif)$/i.test(preview.name) ? 'image/heic' : undefined} src={`/api/album/baidu/media/${encodeURIComponent(preview.id)}`} alt={preview.name} />}

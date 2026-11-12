@@ -80,6 +80,7 @@ export interface ArticleSavePayload {
 }
 
 export interface AlbumPhoto {
+  baiduFileId?: string
   id: number;
   url: string;
   originalName?: string;
