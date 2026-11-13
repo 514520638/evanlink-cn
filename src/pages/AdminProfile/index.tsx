@@ -1,3 +1,4 @@
+import { AUTH_EVENT } from '../../utils/adminAuth'
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -87,7 +88,10 @@ export const AdminProfile: React.FC = () => {
   }
 
   useEffect(() => {
-    loadProfile()
+    const reload = () => { void loadProfile() }
+    const storage = (event: StorageEvent) => { if (event.key === 'auth_change') reload() }
+    reload(); window.addEventListener(AUTH_EVENT, reload); window.addEventListener('storage', storage)
+    return () => { window.removeEventListener(AUTH_EVENT, reload); window.removeEventListener('storage', storage) }
   }, [])
 
   const handleLogin = async () => {

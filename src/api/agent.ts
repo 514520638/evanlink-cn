@@ -1,3 +1,4 @@
+import { logoutAdmin } from '../utils/adminAuth'
 /** Agent API 客户端：凭据只走 HttpOnly Cookie，不使用博客管理员密码或 localStorage。 */
 const BASE = '/agent-api'
 
@@ -125,8 +126,7 @@ export const agentApi = {
   },
   me: async (): Promise<{ role: AgentRole; user_id: string | null }> => (await request('/auth/me')).json(),
   guest: async (): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/guest', 'POST')).json(),
-  login: async (password: string): Promise<{ role: AgentRole; expires_in: number }> => (await request('/auth/login', 'POST', { password })).json(),
-  logout: async () => { await request('/auth/logout', 'POST') },
+  logout: logoutAdmin,
   renameConversation: async (id: string, title: string) => { await request(`/conversations/${encodeURIComponent(id)}`, 'PATCH', { title }) },
   createConversation: async (): Promise<{ conversation_id: string }> => (await request('/conversations', 'POST')).json(),
   conversations: async (): Promise<{ items: { conversation_id: string; message_count: number; title?: string | null }[] }> => (await request('/conversations')).json(),

@@ -19,6 +19,8 @@ import {
 } from '../../api/album'
 import type { AlbumPhoto } from '../../types'
 import styles from './Album.module.css'
+import { AlbumLike } from '../../components/AlbumLike'
+import { useBlogAuth } from '../../hooks/useBlogAuth'
 import { AlbumImage } from '../../components/AlbumImage'
 import { NetdiskAlbum } from '../../components/NetdiskAlbum'
 
@@ -50,7 +52,9 @@ export const Album: React.FC = () => {
   const [openUploadAfterLogin, setOpenUploadAfterLogin] = useState(false)
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [netdiskOpen, setNetdiskOpen] = useState(false)
+  const { owner: sharedOwner } = useBlogAuth()
   const [isAuthed, setIsAuthed] = useState(false)
+  useEffect(() => { setIsAuthed(sharedOwner) }, [sharedOwner])
 
   const loadPhotos = async () => {
     setLoading(true)
@@ -72,20 +76,6 @@ export const Album: React.FC = () => {
       else message.error('网盘授权未完成或已过期，请登录后重新连接')
       url.searchParams.delete('baidu'); window.history.replaceState(null, '', url.pathname + url.search + url.hash)
     }
-  }, [])
-
-  useEffect(() => {
-    const verifyAuth = async () => {
-      setIsAuthed(await verifyAlbumManageAuth())
-    }
-
-    verifyAuth()
-
-    const handleStorage = () => {
-      verifyAuth()
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
   const requireAuth = async (openUploadAfterSuccess: boolean) => {
@@ -284,6 +274,7 @@ export const Album: React.FC = () => {
                       try { await unpublishAlbumPhoto(photo.baiduFileId!); await loadPhotos(); message.success('已取消发布，网盘原图保留') } catch (error) { message.error(error instanceof Error ? error.message : '取消发布失败') }
                     }}><Button type="text" size="small" style={{ float: 'right' }} icon={<EyeInvisibleOutlined />} aria-label="取消发布照片" /></Popconfirm>}
                     <h3 className={styles.photoTitle} title={photo.title || photo.originalName || '未命名照片'}>{photo.title || photo.originalName || '未命名照片'}</h3>
+                    <AlbumLike photoId={photo.id} />
                     <p className={styles.photoDescription}>
                       {photo.description || new Date(photo.createdAt).toLocaleDateString()}
                     </p>

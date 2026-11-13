@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Layout, Menu, Button, Space, Dropdown, Avatar, Drawer, Modal } from 'antd'
+import { Layout, Menu, Button, Space, Dropdown, Avatar, Drawer, Modal, Form, Input, message } from 'antd'
 import {
+  UserOutlined,
+  LogoutOutlined,
+  MessageOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   GlobalOutlined,
@@ -14,6 +17,9 @@ import { useTheme } from '../../hooks/useTheme'
 import { useLanguage } from '../../hooks/useLanguage'
 import styles from './Header.module.css'
 import { useAppSelector } from '../../store/hooks'
+import { useBlogAuth } from '../../hooks/useBlogAuth'
+import { loginAdmin, logoutAdmin } from '../../utils/adminAuth'
+import { GuestQuestions } from '../GuestQuestions'
 import { useManagedImage } from '../../hooks/useManagedImage'
 
 const { Header: AntHeader } = Layout
@@ -52,6 +58,17 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
     { key: '/album', label: t('nav.album') },
     { key: '/about', label: t('nav.about') },
   ]
+
+  const { owner, checking } = useBlogAuth()
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [questionsOpen, setQuestionsOpen] = useState(false)
+  const [accountBusy, setAccountBusy] = useState(false)
+  const [accountForm] = Form.useForm<{ username: string; password: string }>()
+  useEffect(() => { if (!owner) setQuestionsOpen(false) }, [owner])
+  const accountMenu = { items: [{ key: 'questions', label: '访客提问', icon: <MessageOutlined /> }, { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true }], onClick: ({ key }: { key: string }) => {
+    if (key === 'questions') setQuestionsOpen(true)
+    if (key === 'logout') { setAccountBusy(true); void logoutAdmin().catch(e => message.error(e.message)).finally(() => setAccountBusy(false)) }
+  } }
 
   const currentKey =
     menuItems.find(
@@ -126,6 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
 
         <div className={styles.rightSection}>
           <Space size="middle">
+            {owner ? <Dropdown menu={accountMenu} trigger={['click']}><Button className={styles.accountButton} type="primary" ghost icon={<UserOutlined />} loading={accountBusy} aria-label="管理员账号菜单"><span className={styles.accountLabel}>管理员</span></Button></Dropdown> : <Button className={styles.accountButton} icon={<UserOutlined />} disabled={checking} onClick={() => setAccountOpen(true)} aria-label="管理员登录"><span className={styles.accountLabel}>登录</span></Button>}
             <Button
               type="text"
               icon={<BulbOutlined />}
@@ -179,6 +197,15 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
         />
       </Drawer>
 
+      <Modal title="管理员登录" open={accountOpen} confirmLoading={accountBusy} okText="登录" cancelText="取消" onCancel={() => { setAccountOpen(false); accountForm.resetFields() }} onOk={() => void accountForm.validateFields().then(async values => {
+        setAccountBusy(true)
+        try { await loginAdmin(values); setAccountOpen(false); accountForm.resetFields(); message.success('登录成功') }
+        catch(e) { message.error(e instanceof Error ? e.message : '登录失败') }
+        finally { setAccountBusy(false) }
+      }).catch(() => undefined)}>
+        <Form form={accountForm} layout="vertical"><Form.Item label="账号" name="username" rules={[{ required: true }]}><Input autoComplete="username" /></Form.Item><Form.Item label="密码" name="password" rules={[{ required: true }]}><Input.Password autoComplete="current-password" /></Form.Item></Form>
+      </Modal>
+      {owner && <GuestQuestions open={questionsOpen} onClose={() => setQuestionsOpen(false)} />}
       {/* 微信二维码弹窗 */}
       <Modal
         title={language === 'zh' ? '添加微信' : 'Add WeChat'}

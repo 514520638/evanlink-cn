@@ -1,3 +1,5 @@
+import { AUTH_EVENT, loginAdmin } from '../../utils/adminAuth'
+import { GuestQuestions } from '../GuestQuestions'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
@@ -61,6 +63,10 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [loginOpen, setLoginOpen] = useState(false)
+  const [blogUsername, setBlogUsername] = useState('')
+  const [questionsOpen, setQuestionsOpen] = useState(false)
+  const [authVersion, setAuthVersion] = useState(0)
+  const authReload = useRef(false)
   const [password, setPassword] = useState('')
   const [pending, setPending] = useState<PendingApproval | null>(null)
   const [drafts, setDrafts] = useState<Draft[]>([])
@@ -161,6 +167,13 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     setRole(identity.role)
     await listAndLoad(savedId())
   })
+  useEffect(() => {
+    const changed = () => { authReload.current = true; abort.current?.abort(); setReady(false); setMessages([]); setReview(null); setConversations([]); setConversationId(''); setRole('guest'); setQuestionsOpen(false); setAuthVersion(n => n + 1) }
+    const storage = (event: StorageEvent) => { if (event.key === 'auth_change') changed() }
+    window.addEventListener(AUTH_EVENT, changed); window.addEventListener('storage', storage)
+    return () => { window.removeEventListener(AUTH_EVENT, changed); window.removeEventListener('storage', storage) }
+  }, [])
+  useEffect(() => { if (authReload.current && !busy && (open || standalone)) { authReload.current = false; void initialize() } }, [authVersion, busy, open, standalone])
   const launch = () => { setOpen(true); if (!ready) void initialize() }
 
   async function runStream(run: (onEvent: (event: AgentEvent) => void, signal: AbortSignal) => Promise<void>) {
@@ -340,23 +353,28 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
       </section>}
       <section className={styles.accountSection}><h3>{tr('账号与资料', 'Account & knowledge')}</h3><div className={styles.accountTools}>
         <Button icon={<ReloadOutlined />} disabled={busy} onClick={() => ready ? void operation(() => listAndLoad(conversationId)) : void initialize()}>{tr('刷新','Refresh')}</Button>
+        {role === 'owner' && <Button disabled={busy} onClick={() => { closeManager(); setQuestionsOpen(true) }}>访客提问</Button>}
         {role === 'owner' && <Button disabled={busy || serverRunning} onClick={() => { closeManager(); setKnowledgeOpen(true) }}>{tr('知识库', 'Knowledge')}</Button>}
         {role === 'owner' ? <Button icon={<LogoutOutlined />} disabled={busy} onClick={() => void operation(async () => {
-          await agentApi.logout(); closeManager(); setMessages([]); setReview(null); setReady(false); setRole('guest'); setConversationId(''); setConversations([])
+          await agentApi.logout(); authReload.current = false; closeManager(); setMessages([]); setReview(null); setReady(false); setRole('guest'); setConversationId(''); setConversations([])
           await agentApi.guest(); await listAndLoad()
         })}>{tr('退出', 'Log out')}</Button> : <Button icon={<LoginOutlined />} disabled={busy} onClick={() => { setLoginOpen(!loginOpen); setPassword('') }}>{tr('本人登录', 'Owner login')}</Button>}
       </div>
       {loginOpen && <form className={styles.accountLogin} onSubmit={event => { event.preventDefault(); void operation(async () => {
         try {
-          const result = await agentApi.login(password)
+          await loginAdmin({ username: blogUsername, password })
+          const result = await agentApi.me()
+          authReload.current = false
           setReady(false); setRole(result.role); setMessages([]); setReview(null); setConversations([]); setConversationId(''); closeManager()
           await listAndLoad()
         } finally { setPassword('') }
       }) }}>
-        <label htmlFor="agent-password">{tr('Agent 本人密码', 'Agent owner password')}</label>
+        <label htmlFor="agent-username">{tr('博客管理员账号', 'Blog administrator')}</label>
+        <Input id="agent-username" autoComplete="username" value={blogUsername} onChange={event => setBlogUsername(event.target.value)} disabled={busy} />
+        <label htmlFor="agent-password">{tr('密码', 'Password')}</label>
         <div className={styles.row}><Input.Password id="agent-password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} />
-          <Button htmlType="submit" type="primary" loading={busy} disabled={!password || busy}>{tr('登录', 'Log in')}</Button></div>
-        <p className={styles.muted}>{tr('使用 Agent 设置的本人密码，不是博客后台密码。', 'Use your Agent password, not the blog admin password.')}</p>
+          <Button htmlType="submit" type="primary" loading={busy} disabled={!blogUsername || !password || busy}>{tr('登录', 'Log in')}</Button></div>
+        <p className={styles.muted}>{tr('与博客使用同一账号，登录和退出会同步。', 'Use the same blog account. Sign-in and sign-out are shared.')}</p>
       </form>}
       </section>
     </div>
@@ -427,6 +445,7 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
           </div>
         </section>}
       </div>
+      {role === 'guest' && <p className={styles.guestNote}>访客提问会保存供站点作者查看。</p>}
       <div className={styles.composer}>
         {attachment && <div className={styles.imagePreview}><img src={attachment.url} alt="待发送图片" /><Button disabled={busy} onClick={() => setAttachment(null)}>移除</Button></div>}
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async event => {
@@ -449,6 +468,7 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
 
       </div>
   </>
+  const guestQuestionPanel = role === 'owner' && <GuestQuestions open={questionsOpen} onClose={() => setQuestionsOpen(false)} />
   const knowledge = open && knowledgeOpen && role === 'owner' && <KnowledgePanel onClose={() => setKnowledgeOpen(false)} onExpired={knowledgeExpired} />
   if (standalone) return <main ref={pageRef} className={styles.page}>
     <div className={styles.pageInner}>
@@ -463,9 +483,11 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
       {chatBody}
     </div>
     {knowledge}
+    {guestQuestionPanel}
   </main>
 
   return <>
+    {guestQuestionPanel}
     {createPortal(<Button ref={launcherRef} className={styles.launcher} type="primary" size="large" icon={<CommentOutlined />} onClick={launch} aria-label={tr('打开 AI 聊天', 'Open AI chat')}>
       {tr('和我聊聊', 'Chat with me')}
     </Button>, document.body)}

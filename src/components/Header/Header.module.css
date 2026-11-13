@@ -211,3 +211,6 @@
   .rightSection .socialLink { display: none; }
   .logoText { max-width: 80px; }
 }
+
+.accountButton { border-radius: 9px; }
+@media(max-width:480px) { .accountLabel { display: none; } .accountButton { padding-inline: 9px; } }

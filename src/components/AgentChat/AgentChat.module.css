@@ -237,3 +237,5 @@
 
 /* 固定入口独立于页面内容和抽屉推移动画，跟随可视窗口及安全区域。 */
 .launcher { right: calc(var(--launcher-right, 0px) + max(16px, env(safe-area-inset-right))); bottom: calc(var(--launcher-bottom, 0px) + max(16px, env(safe-area-inset-bottom))); max-width: calc(100vw - 32px); }
+
+.guestNote { margin: 0; padding: 8px 20px 0; color: var(--muted, #64748b); font-size: 12px; line-height: 1.5; }
