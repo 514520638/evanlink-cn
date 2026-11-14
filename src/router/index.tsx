@@ -1,18 +1,18 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import AgentChat from '../components/AgentChat'
+const AgentChat = lazy(() => import('../components/AgentChat'))
 import { Layout } from '../components/Layout'
-import { Home } from '../pages/Home'
-import { Blog } from '../pages/Blog'
-import { ArticlePage } from '../pages/Article'
-import { About } from '../pages/About'
-import { Editor } from '../pages/Editor'
-import { AdminProfile } from '../pages/AdminProfile'
-import { Album } from '../pages/Album'
+const Home = lazy(() => import('../pages/Home').then(module => ({ default: module.Home })))
+const Blog = lazy(() => import('../pages/Blog').then(module => ({ default: module.Blog })))
+const ArticlePage = lazy(() => import('../pages/Article').then(module => ({ default: module.ArticlePage })))
+const About = lazy(() => import('../pages/About').then(module => ({ default: module.About })))
+const Editor = lazy(() => import('../pages/Editor').then(module => ({ default: module.Editor })))
+const AdminProfile = lazy(() => import('../pages/AdminProfile').then(module => ({ default: module.AdminProfile })))
+const Album = lazy(() => import('../pages/Album').then(module => ({ default: module.Album })))
 
 export const AppRouter: React.FC = () => {
   return (
-    <Routes>
+    <Suspense fallback={<div role="status" style={{ padding: 32 }}>页面加载中…</div>}><Routes>
       <Route path="/chat" element={<AgentChat standalone />} />
       <Route path="/agent" element={<Navigate replace to="/chat" />} />
       <Route path="/" element={<Layout />}>
@@ -25,6 +25,6 @@ export const AppRouter: React.FC = () => {
         <Route path="admin" element={<AdminProfile />} />
         <Route path="album" element={<Album />} />
       </Route>
-    </Routes>
+    </Routes></Suspense>
   )
 }

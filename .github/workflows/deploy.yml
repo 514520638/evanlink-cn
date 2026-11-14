@@ -66,7 +66,7 @@ jobs:
           tar -czf frontend.tar.gz -C dist .
           remote="/tmp/evanlink-ci-$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "root@$HOST" "mkdir -m 700 '$remote'"
-          bash deploy/ci-upload.sh "$remote" frontend.tar.gz deploy/ci-deploy.sh
+          bash deploy/ci-upload.sh "$remote" frontend.tar.gz deploy/ci-deploy.sh deploy/ci-nginx-cache.sh deploy/nginx-frontend-cache.conf
           echo 'ready=true' >> "$GITHUB_OUTPUT"
       - name: Deploy and verify
         if: steps.upload.outputs.ready == 'true'

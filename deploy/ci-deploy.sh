@@ -33,7 +33,16 @@ restore() {
   if (( status != 0 )); then
     install -m 644 "$backup/index.html" "$site/index.html.rollback"
     mv -f "$site/index.html.rollback" "$site/index.html"
-    echo "Frontend deployment failed. Previous entry restored." >&2
+    if test -f "$backup/nginx-cache-applied"; then
+      cp -p "$backup/nginx-site.conf" /etc/nginx/conf.d/evanlink.cn.conf
+      if test -f "$backup/nginx-cache.conf"; then
+        cp -p "$backup/nginx-cache.conf" /etc/nginx/snippets/evanlink-frontend-cache.conf
+      else
+        rm -f /etc/nginx/snippets/evanlink-frontend-cache.conf
+      fi
+      nginx -t && systemctl reload nginx || true
+    fi
+    echo "Frontend deployment failed. Previous entry and cache configuration restored." >&2
   fi
   exit "$status"
 }
@@ -45,4 +54,18 @@ for asset in "${assets[@]}"; do
   grep -Fq "$asset" <<< "$online"
   curl -fsS --max-time 15 -o /dev/null "https://evanlink.cn$asset"
 done
+bash "$incoming/ci-nginx-cache.sh" "$incoming" "$backup"
+wait_header() {
+  for attempt in $(seq 1 10); do
+    if curl -fsSI --max-time 5 "$1" | grep -qi "$2"; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+wait_header https://evanlink.cn/chat 'cache-control: no-cache'
+for asset in "${assets[@]}"; do
+  wait_header "https://evanlink.cn$asset" 'cache-control: public, max-age=31536000, immutable'
+done
+curl -fsS --max-time 15 -H 'Accept-Encoding: gzip' -D "$backup/asset-response.headers" -o /dev/null "https://evanlink.cn${assets[0]}"
+grep -qi '^Content-Encoding: gzip' "$backup/asset-response.headers"
 echo "Frontend deployed: $sha"

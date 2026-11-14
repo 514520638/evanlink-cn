@@ -1,5 +1,6 @@
 import { AUTH_EVENT, loginAdmin } from '../../utils/adminAuth'
 import { GuestQuestions } from '../GuestQuestions'
+import { useFloatingLauncher } from '../../hooks/useFloatingLauncher'
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Checkbox, Collapse, Drawer, Input, Popconfirm, Select, Spin, Tag } from 'antd'
@@ -31,10 +32,10 @@ function SignalMark() {
 }
 
 /** 全站聊天抽屉：状态属于组件，凭据仅由服务端 HttpOnly Cookie 管理。 */
-export default function AgentChat({ standalone = false }: { standalone?: boolean }) {
+export default function AgentChat({ standalone = false, initialOpen = false }: { standalone?: boolean; initialOpen?: boolean }) {
   const { language } = useLanguage()
   const tr = (zh: string, en: string) => language === 'zh' ? zh : en
-  const [open, setOpen] = useState(standalone)
+  const [open, setOpen] = useState(standalone || initialOpen)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const knowledgeExpired = useCallback(() => {
     setKnowledgeOpen(false); setRole('guest'); setReady(false)
@@ -254,35 +255,10 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
     })
   }
 
-  const launcherRef = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    if (standalone) return
-    const viewport = window.visualViewport
-    let frame = 0
-    const update = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => {
-        const button = launcherRef.current
-        if (!button) return
-        button.style.setProperty('--launcher-right', Math.max(0, document.documentElement.clientWidth - ((viewport?.offsetLeft ?? 0) + (viewport?.width ?? window.innerWidth))) + 'px')
-        button.style.setProperty('--launcher-bottom', Math.max(0, window.innerHeight - ((viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight))) + 'px')
-      })
-    }
-    update()
-    viewport?.addEventListener('resize', update)
-    viewport?.addEventListener('scroll', update)
-    window.addEventListener('resize', update)
-    window.addEventListener('pageshow', update)
-    return () => {
-      cancelAnimationFrame(frame)
-      viewport?.removeEventListener('resize', update)
-      viewport?.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
-      window.removeEventListener('pageshow', update)
-    }
-  }, [standalone])
+  const launcherRef = useFloatingLauncher(!standalone)
   const pageRef = useRef<HTMLElement>(null)
   const firstInitialize = useRef(initialize)
+  useEffect(() => { if (initialOpen && !standalone) void firstInitialize.current() }, [initialOpen, standalone])
   useEffect(() => {
     if (!standalone) return
     void firstInitialize.current()
@@ -445,7 +421,7 @@ export default function AgentChat({ standalone = false }: { standalone?: boolean
           </div>
         </section>}
       </div>
-      {role === 'guest' && <p className={styles.guestNote}>访客提问会保存供站点作者查看。</p>}
+      {role === 'guest' && <p className={styles.guestNote}>访客提问、时间和 IP 估算地区会保存供站点作者查看。</p>}
       <div className={styles.composer}>
         {attachment && <div className={styles.imagePreview}><img src={attachment.url} alt="待发送图片" /><Button disabled={busy} onClick={() => setAttachment(null)}>移除</Button></div>}
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async event => {

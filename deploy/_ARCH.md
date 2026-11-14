@@ -11,3 +11,5 @@
 共享锁协调 Java 与 Agent 发布，详见 [AUTO_DEPLOY.md](AUTO_DEPLOY.md)。
 
 ci-upload.sh：显示上传进度、检测传输停滞、最多三次断点续传；上传成功后才执行部署。依赖 runner 与服务器的 rsync。
+
+ci-nginx-cache.sh / nginx-frontend-cache.conf：自动发布时应用 HTML 验证缓存、哈希资产长期缓存和 gzip。配置检查后平滑 reload，失败回滚。
