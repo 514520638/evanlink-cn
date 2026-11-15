@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Col, Empty, Input, message, Pagination, Row, Select, Spin, Tag, Typography } from 'antd'
+import { Button, Col, Empty, Input, message, Pagination, Popconfirm, Row, Select, Space, Spin, Tag, Typography } from 'antd'
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { ArticleCard } from '../../components/ArticleCard'
-import { fetchArticleFilters, fetchArticles } from '../../api/articles'
+import { fetchArticleFilters, fetchArticles, setArticleVisibility } from '../../api/articles'
 import type { Article, ArticleCategory, ArticleTagOption } from '../../types'
 import { verifyAdminSession } from '../../utils/adminAuth'
+import { useBlogAuth } from '../../hooks/useBlogAuth'
 import styles from './Blog.module.css'
 
 const { Title, Paragraph } = Typography
@@ -16,6 +17,17 @@ export const Blog: React.FC = () => {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
   const navigate = useNavigate()
+  const { owner, checking } = useBlogAuth()
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'ARCHIVED' | 'DRAFT'>('ALL')
+  const [version, setVersion] = useState(0)
+  const [changing, setChanging] = useState<string | null>(null)
+  const changeVisibility = async (article: Article) => {
+    if (!article.id) return
+    setChanging(String(article.id))
+    try { await setArticleVisibility(article.id, article.status !== 'PUBLISHED'); setVersion(n => n + 1); message.success(article.status === 'PUBLISHED' ? '已隐藏，访客无法查看' : '文章已公开') }
+    catch (error) { message.error(error instanceof Error ? error.message : '修改失败') }
+    finally { setChanging(null) }
+  }
 
   const [articles, setArticles] = useState<Article[]>([])
   const [categories, setCategories] = useState<ArticleCategory[]>([])
@@ -37,9 +49,11 @@ export const Blog: React.FC = () => {
       .catch((error) => {
         message.error(error instanceof Error ? error.message : '加载筛选项失败')
       })
-  }, [])
+  }, [version, owner])
 
   useEffect(() => {
+    if (checking) return
+    let cancelled = false
     const timer = window.setTimeout(async () => {
       setLoading(true)
       try {
@@ -49,22 +63,24 @@ export const Blog: React.FC = () => {
           tagIds: selectedTagIds,
           page,
           pageSize,
+          status: owner ? statusFilter : 'PUBLISHED',
         })
+        if (cancelled) return
         setArticles(data.items)
         setTotal(data.total)
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '加载文章失败')
+        if (!cancelled) message.error(error instanceof Error ? error.message : '加载文章失败')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }, 300)
 
-    return () => window.clearTimeout(timer)
-  }, [searchQuery, selectedCategoryId, selectedTagIds, page, pageSize])
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [searchQuery, selectedCategoryId, selectedTagIds, page, pageSize, owner, checking, statusFilter, version])
 
   useEffect(() => {
     setPage(1)
-  }, [searchQuery, selectedCategoryId, selectedTagIds])
+  }, [searchQuery, selectedCategoryId, selectedTagIds, statusFilter, owner])
 
   const handleTagClick = (tagId: number) => {
     setSelectedTagIds((prev) =>
@@ -101,6 +117,7 @@ export const Blog: React.FC = () => {
         </div>
       </div>
 
+      {owner && <Space style={{ marginBottom: 20 }}><span>文章状态</span><Select aria-label="文章状态" style={{ width: 150 }} value={statusFilter} onChange={setStatusFilter} options={[{value:'ALL',label:'全部文章'},{value:'PUBLISHED',label:'公开'},{value:'ARCHIVED',label:'隐藏'},{value:'DRAFT',label:'草稿'}]} /></Space>}
       <div className={styles.filters}>
         <div className={styles.searchInput}>
           <Input
@@ -127,7 +144,7 @@ export const Blog: React.FC = () => {
             <label>{t('blog.tags')}:</label>
             <div className={styles.tags}>
               {/* 还没有文章的标签不进筛选栏，避免出现点开为空的入口；编辑器下拉仍保留全部标签。 */}
-              {tags.filter((tag) => (tag.articleCount ?? 0) > 0).map((tag) => (
+              {tags.filter((tag) => owner || (tag.articleCount ?? 0) > 0).map((tag) => (
                 <Tag
                   key={tag.id}
                   color={selectedTagIds.includes(tag.id) ? tag.color || 'blue' : undefined}
@@ -149,9 +166,10 @@ export const Blog: React.FC = () => {
         {articles.length > 0 ? (
           <>
             <Row gutter={[24, 24]}>
-              {articles.map((article) => (
+              {articles.filter(article => owner || article.status === 'PUBLISHED' || !article.status).map((article) => (
                 <Col key={article.id ?? article.slug} xs={24} sm={12} lg={8}>
                   <ArticleCard article={article} tagOptions={tags} />
+                  {owner && <Space style={{ marginTop: 8, justifyContent: 'space-between', width: '100%' }}><Tag color={article.status === 'PUBLISHED' ? 'blue' : undefined}>{article.status === 'PUBLISHED' ? '公开' : article.status === 'DRAFT' ? '草稿' : '隐藏'}</Tag><Popconfirm title={article.status === 'PUBLISHED' ? '隐藏这篇文章？' : '公开这篇文章？'} description={article.status === 'PUBLISHED' ? '访客列表和文章链接都将无法查看，内容保留。' : '所有访客均可查看文章内容。'} onConfirm={() => changeVisibility(article)}><Button size="small" loading={changing === String(article.id)} disabled={changing !== null}>{article.status === 'PUBLISHED' ? '隐藏' : '公开'}</Button></Popconfirm><Button size="small" type="text" onClick={() => navigate(`/editor/${article.slug}`)}>编辑</Button></Space>}
                 </Col>
               ))}
             </Row>

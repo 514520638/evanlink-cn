@@ -59,7 +59,7 @@ export interface ArticleQueryParams {
   keyword?: string;
   categoryId?: number;
   tagIds?: number[];
-  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'ALL';
   page?: number;
   pageSize?: number;
 }

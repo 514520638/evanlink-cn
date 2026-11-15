@@ -29,6 +29,7 @@ export const Editor: React.FC = () => {
   const isZh = i18n.language === 'zh'
 
   const [articleId, setArticleId] = useState<string | undefined>()
+  const [publicationStatus, setPublicationStatus] = useState<'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>('PUBLISHED')
   const [title, setTitle] = useState('')
   const [titleEn, setTitleEn] = useState('')
   const [slugValue, setSlugValue] = useState('')
@@ -91,6 +92,7 @@ export const Editor: React.FC = () => {
 
   const fillArticle = (article: Article) => {
     setArticleId(article.id)
+    setPublicationStatus(article.status || 'PUBLISHED')
     setTitle(article.title)
     setTitleEn(article.titleEn || '')
     setSlugValue(article.slug)
@@ -138,7 +140,7 @@ export const Editor: React.FC = () => {
     categoryId,
     tagIds,
     author: 'Evan',
-    status: 'PUBLISHED',
+    status: publicationStatus,
     featured: false,
   })
 
@@ -212,7 +214,8 @@ export const Editor: React.FC = () => {
             {isEditing ? (isZh ? '编辑文章' : 'Edit Article') : isZh ? '写文章' : 'Write Article'}
           </Title>
         </div>
-        <Space>
+        <Space wrap>
+          <Select aria-label="文章公开状态" value={publicationStatus} onChange={setPublicationStatus} style={{ width: 120 }} options={[{value:'PUBLISHED',label:isZh?'公开':'Public'},{value:'ARCHIVED',label:isZh?'隐藏':'Hidden'},{value:'DRAFT',label:isZh?'草稿':'Draft'}]} />
           <Button icon={<EyeOutlined />} onClick={() => setPreviewMode(!previewMode)}>
             {previewMode ? (isZh ? '编辑' : 'Edit') : isZh ? '预览' : 'Preview'}
           </Button>

@@ -81,3 +81,7 @@ export const increaseArticleView = (slug: string) => {
 export const fetchArticleFilters = () => {
   return requestJson<ArticleFilters>(API_ENDPOINTS.ARTICLE_FILTERS)
 }
+
+export const setArticleVisibility = (id: string | number, visible: boolean) => requestJson<Article>(`${API_ENDPOINTS.ARTICLES}/${id}/visibility`, {
+  method: 'PATCH', headers: { 'X-Blog-Request': '1' }, body: JSON.stringify({ visible }),
+})

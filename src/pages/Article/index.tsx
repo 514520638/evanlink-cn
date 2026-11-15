@@ -18,6 +18,7 @@ import { fetchArticleBySlug, fetchArticleFilters, increaseArticleView } from '..
 import type { Article as ArticleType, ArticleTagOption } from '../../types'
 import { verifyAdminSession } from '../../utils/adminAuth'
 import { splitBody } from '../../utils/articleLanguage'
+import { useBlogAuth } from '../../hooks/useBlogAuth'
 import styles from './Article.module.css'
 
 const { Title } = Typography
@@ -27,6 +28,7 @@ export const ArticlePage: React.FC = () => {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language === 'zh'
   const navigate = useNavigate()
+  const { owner, checking } = useBlogAuth()
   const [tagOptions, setTagOptions] = useState<ArticleTagOption[]>([])
   useEffect(() => {
     let active = true
@@ -38,6 +40,7 @@ export const ArticlePage: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (checking) return
     if (!slug) {
       setLoading(false)
       return
@@ -45,15 +48,16 @@ export const ArticlePage: React.FC = () => {
 
     let mounted = true
     setLoading(true)
+    setArticle(null)
     fetchArticleBySlug(slug)
       .then((data) => {
         if (mounted) {
           setArticle(data)
         }
-        return increaseArticleView(slug)
+        if (data.status === 'PUBLISHED') return increaseArticleView(slug)
       })
       .catch((error) => {
-        message.error(error instanceof Error ? error.message : '加载文章失败')
+        if (mounted) message.error(error instanceof Error ? error.message : '加载文章失败')
       })
       .finally(() => {
         if (mounted) {
@@ -64,7 +68,7 @@ export const ArticlePage: React.FC = () => {
     return () => {
       mounted = false
     }
-  }, [slug])
+  }, [slug, owner, checking])
 
   const handleCopyCode = async (code: string) => {
     try {
@@ -89,7 +93,7 @@ export const ArticlePage: React.FC = () => {
     navigate(`/admin?redirect=${encodeURIComponent(editorPath)}`)
   }
 
-  if (loading) {
+  if (loading || checking) {
     return (
       <div className={styles.article}>
         <Spin />
@@ -97,7 +101,7 @@ export const ArticlePage: React.FC = () => {
     )
   }
 
-  if (!article) {
+  if (!article || (!owner && article.status && article.status !== 'PUBLISHED')) {
     return (
       <div className={styles.notFound}>
         <Title level={2}>404 - {t('common.not_found')}</Title>
@@ -124,6 +128,7 @@ export const ArticlePage: React.FC = () => {
             {isZh ? '编辑' : 'Edit'}
           </Button>
         </div>
+        {owner && article.status !== 'PUBLISHED' && <Tag>仅管理员可见 · {article.status === 'DRAFT' ? '草稿' : '隐藏'}</Tag>}
         <Title level={1} className={styles.title}>
           {title}
         </Title>
