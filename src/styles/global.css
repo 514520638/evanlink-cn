@@ -495,3 +495,8 @@ html, body, #root { width: 100%; min-width: 0; }
 .markdown-content { min-width: 0; overflow-wrap: anywhere; }
 .markdown-content pre { max-width: 100%; }
 .markdown-content table { display: block; max-width: 100%; overflow-x: auto; }
+
+/* H5 可视窗口、安全区域、原生控件与 React 组件使用同一主题。 */
+:root { --page-background: #fff; --text-color: #172233; --text-color-secondary: #617083; --primary-color: #1677ff; color-scheme: light; }
+:root[data-theme='dark'] { --page-background: #141414; --text-color: #e6edf5; --text-color-secondary: #a7b4c4; --primary-color: #7db7ff; color-scheme: dark; }
+html, body, #root { background-color: var(--page-background); color: var(--text-color); }

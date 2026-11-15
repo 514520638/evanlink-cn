@@ -148,6 +148,8 @@ export const Header: React.FC<HeaderProps> = ({ collapsed, onToggleCollapse }) =
               type="text"
               icon={<BulbOutlined />}
               onClick={toggleTheme}
+              aria-label={theme === 'light' ? '切换深色模式' : '切换浅色模式'}
+              aria-pressed={theme === 'dark'}
               title={theme === 'light' ? t('theme.dark') : t('theme.light')}
             />
 

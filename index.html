@@ -2,6 +2,19 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <meta name="theme-color" content="#ffffff" />
+    <script>
+      // 在页面绘制前应用主题，避免 H5 深色启动时闪白。
+      (function () {
+        var saved = null;
+        try { saved = localStorage.getItem('theme'); } catch (_) {}
+        var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').content = dark ? '#141414' : '#ffffff';
+      })();
+    </script>
+    <style>html,body{background:#fff}html[data-theme="dark"],html[data-theme="dark"] body{background:#141414}</style>
     <link rel="preconnect" href="https://i.ibb.co" crossorigin />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

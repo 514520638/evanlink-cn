@@ -144,31 +144,7 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* Modal暗色主题支持 */
-:global(.ant-modal-content) {
-  background: #ffffff !important;
-}
-
-:global([data-theme='dark'] .ant-modal-content) {
-  background: #1f1f1f !important;
-}
-
-:global(.ant-modal-title) {
-  color: rgba(0, 0, 0, 0.85) !important;
-}
-
-:global([data-theme='dark'] .ant-modal-title) {
-  color: rgba(255, 255, 255, 0.85) !important;
-}
-
-:global(.ant-modal-close-x) {
-  color: rgba(0, 0, 0, 0.45) !important;
-}
-
-:global([data-theme='dark'] .ant-modal-close-x) {
-  color: rgba(255, 255, 255, 0.45) !important;
-}
-
+/* 弹窗外观统一由全局 ConfigProvider 管理，避免访问此页后污染其他弹窗。 */
 .modalContent {
   color: rgba(0, 0, 0, 0.85);
 }

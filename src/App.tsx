@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { ConfigProvider, theme } from 'antd'
 import { Provider } from 'react-redux'
@@ -40,7 +40,7 @@ const AppContent: React.FC = () => {
 
   const antdLocale = language === 'zh' ? zhCN : enUS
 
-  const darkThemeConfig = {
+  const darkThemeConfig = useMemo(() => ({
     algorithm: currentTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
       colorPrimary: '#1890ff',
@@ -51,7 +51,12 @@ const AppContent: React.FC = () => {
       colorTextSecondary: currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)',
       colorBorder: currentTheme === 'dark' ? '#303030' : '#d9d9d9',
     },
-  }
+  }), [currentTheme])
+
+  useEffect(() => {
+    // 静态 message/notification/Modal 使用独立渲染根，也要同步主题。
+    ConfigProvider.config({ holderRender: children => <ConfigProvider theme={darkThemeConfig} locale={antdLocale}>{children}</ConfigProvider> })
+  }, [darkThemeConfig, antdLocale])
 
   return (
     <ConfigProvider theme={darkThemeConfig} locale={antdLocale}>
