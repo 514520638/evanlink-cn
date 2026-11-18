@@ -421,7 +421,6 @@ export default function AgentChat({ standalone = false, initialOpen = false }: {
           </div>
         </section>}
       </div>
-      {role === 'guest' && <p className={styles.guestNote}>访客提问、时间和 IP 估算地区会保存供站点作者查看。</p>}
       <div className={styles.composer}>
         {attachment && <div className={styles.imagePreview}><img src={attachment.url} alt="待发送图片" /><Button disabled={busy} onClick={() => setAttachment(null)}>移除</Button></div>}
         <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async event => {
